@@ -18,12 +18,50 @@
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   h1 { font-size: 18px; font-weight: 600; margin: 0; }
-  canvas {
+  .scene-wrap {
+    position: relative;
     width: min(1000px, calc(100vw - 24px));
-    height: auto;
+    aspect-ratio: 5 / 3;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
     background: #1a2230;
     border-radius: 10px;
     box-shadow: 0 8px 30px rgba(0,0,0,.4);
+  }
+  .scene-label {
+    position: absolute;
+    z-index: 1;
+    padding: 3px 6px;
+    border: 1px solid rgba(143, 163, 184, .38);
+    border-radius: 5px;
+    background: rgba(16, 21, 28, .88);
+    color: #dfe7ee;
+    font-size: clamp(10px, 1.35vw, 13px);
+    font-weight: 650;
+    line-height: 1.15;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .28);
+  }
+  .chamber-label { color: #eef5fb; }
+  .pipe-label { color: #c9d6e2; }
+  .feature-label { color: #a9bdd0; font-weight: 550; }
+  .label-a { left: 25%; top: 1.8%; }
+  .label-c { left: 5%; top: 36.5%; }
+  .label-b { left: 55%; top: 53.2%; }
+  .label-p1 { left: 61%; top: 48%; transform: translateY(-50%); }
+  .label-p2 { left: 50%; top: 45%; transform: translate(-50%, -100%); }
+  .label-p3 { left: 39%; top: 33%; transform: translate(-100%, -50%); }
+  .label-nozzle { left: 41%; top: 15%; transform: translateY(-50%); }
+  .label-intake { left: 41%; top: 57.5%; transform: translateY(-50%); }
+  .pressure-value { color: #76baff; font-variant-numeric: tabular-nums; }
+  @media (max-width: 600px) {
+    .label-p1 { left: 72%; }
+    .label-p3 { left: 30%; top: 27%; }
+    .label-nozzle { left: 52%; top: 17%; }
   }
   .controls { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14px; }
   button {
@@ -48,7 +86,17 @@
 </head>
 <body>
   <h1>Heron's Fountain — 2D simulation</h1>
-  <canvas id="scene" width="1000" height="600"></canvas>
+  <div class="scene-wrap">
+    <canvas id="scene" width="1000" height="600" role="img" aria-label="Side-view simulation of a Heron's fountain with an open basin, compression chamber, jet reservoir, connecting pipes, and animated water jet."></canvas>
+    <div class="scene-label chamber-label label-a">A · open basin</div>
+    <div class="scene-label chamber-label label-c">C · jet reservoir</div>
+    <div class="scene-label chamber-label label-b">B · compression chamber</div>
+    <div class="scene-label pipe-label label-p1">P1 ↓</div>
+    <div class="scene-label pipe-label label-p2">P2 ↔ shared air <span class="pressure-value" id="gas-pressure">+0.0 kPa</span></div>
+    <div class="scene-label pipe-label label-p3">P3 ↑</div>
+    <div class="scene-label feature-label label-nozzle">nozzle</div>
+    <div class="scene-label feature-label label-intake">intake</div>
+  </div>
   <div class="controls">
     <button id="pour">Pour water (hold / Space)</button>
     <button id="reset">Reset</button>

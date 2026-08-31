@@ -9,6 +9,13 @@
 // isothermal gas volume. Water is incompressible, and pipe flows use a simple
 // orifice approximation Q = Cd * area * sqrt(2 * deltaP / rho).
 
+// P1 and P3 are intentionally identical. Preserve the original fountain
+// nozzle area (0.004 m^2) and derive the shared diameter from it.
+const LIQUID_PIPE_AREA = 0.004;
+const LIQUID_PIPE_DIAMETER = Math.sqrt(4 * LIQUID_PIPE_AREA / Math.PI);
+const LIQUID_PIPE_LENGTH = 2.5;
+const LIQUID_PIPE_DISCHARGE_COEFFICIENT = 0.75;
+
 const PHYS = {
   g: 9.81,
   rho: 1000,          // kg/m^3
@@ -30,13 +37,27 @@ const PHYS = {
 
   nozzle: { x: 4.0, y: 5.1 },
 
-  // Pipe areas and discharge coefficients. P2 is the air equalizer and is
-  // assumed to have negligible pressure drop in this lumped model.
-  P1: { area: 0.03, dischargeCoefficient: 0.70 },
+  // Cd is a lumped loss term in this approximation. Matching Cd, diameter,
+  // and length gives P1 and P3 the same hydraulic resistance. P2 is the air
+  // equalizer and is assumed to have negligible pressure drop.
+  P1: {
+    area: LIQUID_PIPE_AREA,
+    diameter: LIQUID_PIPE_DIAMETER,
+    length: LIQUID_PIPE_LENGTH,
+    dischargeCoefficient: LIQUID_PIPE_DISCHARGE_COEFFICIENT,
+    x: 6.0,
+    topY: 4.1,
+    bottomY: 1.6,
+  },
   P3: {
-    area: 0.004,
-    dischargeCoefficient: 0.75,
-    intakeY: 2.55,
+    area: LIQUID_PIPE_AREA,
+    diameter: LIQUID_PIPE_DIAMETER,
+    length: LIQUID_PIPE_LENGTH,
+    dischargeCoefficient: LIQUID_PIPE_DISCHARGE_COEFFICIENT,
+    x: 4.0,
+    topY: 5.1,
+    bottomY: 2.6,
+    intakeY: 2.6,
   },
 
   airTubeVolume: 0.05, // gas dead volume in P2, m^3

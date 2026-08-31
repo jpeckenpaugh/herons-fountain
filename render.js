@@ -5,6 +5,7 @@
 const canvas = document.getElementById('scene');
 const ctx = canvas.getContext('2d');
 const statsEl = document.getElementById('stats');
+const gasPressureEl = document.getElementById('gas-pressure');
 const sim = new HeronSim();
 
 // ---- World -> screen transform (y world points up) ----
@@ -24,7 +25,7 @@ function emitDrops(jetVolume, jetV) {
   dropCarry += jetVolume * DROPS_PER_CUBIC_METER;
   const n = Math.floor(dropCarry);
   dropCarry -= n;
-  const nozzleDiameter = Math.sqrt(4 * P3.area / Math.PI);
+  const nozzleDiameter = P3.diameter;
   for (let i = 0; i < n; i++) {
     const ang = (-0.05 + Math.random() * 0.10) * (Math.PI / 2);
     const speed = jetV * (0.96 + Math.random() * 0.08);
@@ -56,27 +57,17 @@ function updateDrops(dt) {
 }
 
 // ---- Drawing helpers ----
-function drawChamber(c, label) {
+function drawChamber(c) {
   ctx.strokeStyle = '#7d93ab';
   ctx.lineWidth = 3;
   ctx.strokeRect(SX(c.xL), SY(c.yT), SW(c.xR - c.xL), SY(c.yB) - SY(c.yT));
-  ctx.fillStyle = '#dfe7ee';
-  ctx.font = 'bold 15px -apple-system, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillText(label, SX(c.xL) + 6, SY(c.yT) + 6);
 }
 
-function drawBasin(a, label) {
+function drawBasin(a) {
   const top = a.floor + a.maxDepth;
   ctx.strokeStyle = '#7d93ab';
   ctx.lineWidth = 3;
   ctx.strokeRect(SX(a.xL), SY(top), SW(a.xR - a.xL), SY(a.floor) - SY(top));
-  ctx.fillStyle = '#dfe7ee';
-  ctx.font = 'bold 15px -apple-system, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillText(label, SX(a.xL) + 6, SY(top) + 6);
 }
 
 function drawWater(xL, xR, yB, surface, fill) {
@@ -84,40 +75,32 @@ function drawWater(xL, xR, yB, surface, fill) {
   ctx.fillRect(SX(xL), SY(surface), SW(xR - xL), SY(yB) - SY(surface));
 }
 
-function drawPipe(pts, label) {
+function drawPipe(pts, diameter = 0.05) {
   ctx.strokeStyle = '#8fa3b8';
-  ctx.lineWidth = 5;
+  ctx.lineWidth = Math.max(3, SW(diameter));
   ctx.lineCap = 'round';
   ctx.beginPath();
   pts.forEach(([x, y], i) => (i ? ctx.lineTo(SX(x), SY(y)) : ctx.moveTo(SX(x), SY(y))));
   ctx.stroke();
-  // Label near the midpoint of the pipe
-  const midIdx = Math.floor(pts.length / 2);
-  const [mx, my] = pts[midIdx];
-  ctx.fillStyle = '#c9d6e2';
-  ctx.font = 'bold 12px -apple-system, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'bottom';
-  ctx.fillText(label, SX(mx), SY(my) - 4);
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const { A, B, C, nozzle, P3 } = PHYS;
+  const { A, B, C, nozzle, P1, P3 } = PHYS;
 
   // Pipes (behind water). P1: A->B, P2: B->C (air), P3: C->A (nozzle jet).
-  drawPipe([[6.0, 4.1], [6.0, 1.6]], 'P1');
-  drawPipe([[5.5, 2.5], [4.5, 3.5]], 'P2');
-  drawPipe([[4.0, 5.1], [4.0, 2.6]], 'P3');
+  drawPipe([[P1.x, P1.topY], [P1.x, P1.bottomY]], P1.diameter);
+  drawPipe([[5.5, 2.5], [4.5, 3.5]]);
+  drawPipe([[P3.x, P3.topY], [P3.x, P3.bottomY]], P3.diameter);
 
   // Live water levels, then vessel outlines and labels.
   drawWater(A.xL, A.xR, A.floor, sim.surfaceA(), 'rgba(70,160,255,0.55)');
   drawWater(C.xL, C.xR, C.yB, sim.surfaceC(), 'rgba(70,160,255,0.55)');
   drawWater(B.xL, B.xR, B.yB, sim.surfaceB(), 'rgba(70,160,255,0.45)');
-  drawBasin(A, 'A · top basin');
-  drawChamber(B, 'B · compression chamber');
-  drawChamber(C, 'C · jet reservoir');
+  drawBasin(A);
+  drawChamber(B);
+  drawChamber(C);
 
   // P3 intake: the fountain de-primes when C falls below this elevation.
   ctx.fillStyle = '#dfe7ee';
@@ -127,7 +110,7 @@ function draw() {
 
   // Fountain jet
   ctx.fillStyle = 'rgba(120,200,255,0.9)';
-  const dropRadius = Math.max(1.5, SW(Math.sqrt(4 * P3.area / Math.PI)) * 0.22);
+  const dropRadius = Math.max(1.5, SW(P3.diameter) * 0.22);
   for (const d of drops) {
     ctx.beginPath();
     ctx.arc(SX(d.x), SY(d.y), dropRadius, 0, Math.PI * 2);
@@ -138,14 +121,8 @@ function draw() {
   ctx.arc(SX(nozzle.x), SY(nozzle.y), 4, 0, Math.PI * 2);
   ctx.fill();
 
-  // Live pressure readouts
-  ctx.font = '13px -apple-system, sans-serif';
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = '#8aa0b5';
-  ctx.textAlign = 'left';
   const gaugePressure = (sim.gasPressure() - PHYS.P_atm) / 1000;
-  ctx.fillText(`shared air  ΔP ${gaugePressure.toFixed(1)} kPa`, SX(B.xL) + 6, SY(B.yT) + 28);
-  ctx.fillText(`shared air  ΔP ${gaugePressure.toFixed(1)} kPa`, SX(C.xL) + 6, SY(C.yT) + 28);
+  gasPressureEl.textContent = `${gaugePressure >= 0 ? '+' : ''}${gaugePressure.toFixed(1)} kPa`;
 
   const volA = sim.V_A;
   const volB = sim.V_B;
