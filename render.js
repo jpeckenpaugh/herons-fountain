@@ -8,8 +8,8 @@ const statsEl = document.getElementById('stats');
 const sim = new HeronSim();
 
 // ---- World -> screen transform (y world points up) ----
-const WX = [0.0, 7.4];
-const WY = [0.0, 5.6];
+const WX = [0.0, 10.0];
+const WY = [0.0, 6.0];
 const SX = (x) => ((x - WX[0]) / (WX[1] - WX[0])) * canvas.width;
 const SY = (y) => canvas.height - ((y - WY[0]) / (WY[1] - WY[0])) * canvas.height;
 const SW = (dx) => dx / (WX[1] - WX[0]) * canvas.width;
