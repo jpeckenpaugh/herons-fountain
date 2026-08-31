@@ -45,7 +45,7 @@ const PHYS = {
     crossSectionArea: 0.04,
   },
 
-  nozzle: { y: 0.51 },
+  nozzle: { y: 0.52 },
   inversionTravel: 0.1,
   inversionDuration: 1.0,
 
@@ -58,10 +58,10 @@ const PHYS = {
     length: LIQUID_PIPE_LENGTH,
     dischargeCoefficient: LIQUID_PIPE_DISCHARGE_COEFFICIENT,
     x: 0.6,
-    topY: 0.41,
-    bottomY: 0.16,
+    topY: 0.42,
+    bottomY: 0.17,
     bendLength: LIQUID_PIPE_TOP_BEND,
-    intakeOffset: 0.01,
+    intakeOffset: 0.02,
   },
   P3: {
     area: LIQUID_PIPE_AREA,
@@ -69,10 +69,10 @@ const PHYS = {
     length: LIQUID_PIPE_LENGTH,
     dischargeCoefficient: LIQUID_PIPE_DISCHARGE_COEFFICIENT,
     x: 0.4,
-    topY: 0.51,
-    bottomY: 0.26,
+    topY: 0.52,
+    bottomY: 0.27,
     bendLength: LIQUID_PIPE_TOP_BEND,
-    intakeOffset: 0.01,
+    intakeOffset: 0.02,
   },
   P2: {
     diameter: 0.009,
@@ -113,7 +113,7 @@ class HeronSim {
     // Volumes are the conserved state. Depths are derived for pressure and
     // rendering, which keeps every transfer explicitly volume-for-volume.
     this.V_A = A.crossSectionArea * 0.5 * A.maxDepth;
-    this.V_B = B.crossSectionArea * 0.1 * (B.yT - B.yB);
+    this.V_B = B.crossSectionArea * 0.2 * (B.yT - B.yB);
     this.V_C = C.crossSectionArea * 0.9 * (C.yT - C.yB);
 
     this.initialGasVolume = this.gasVolume();

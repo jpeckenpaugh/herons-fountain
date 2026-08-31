@@ -231,8 +231,7 @@ function updateOverlay(geometry) {
 
   invertButton.textContent = sim.transitioning ? 'Inverting…' : 'Invert';
   invertButton.disabled = sim.transitioning;
-  if (sim.transitioning) controlHint.textContent = 'Physics paused while the chambers exchange positions.';
-  else if (sim.ended && !autoInvertEnabled) controlHint.textContent = 'System settled. Invert when ready.';
+  if (sim.ended && !autoInvertEnabled) controlHint.textContent = 'System settled. Invert when ready.';
   else if (autoInvertEnabled) controlHint.textContent = `Auto Invert ${triggerDescription()}. Manual inversion is available at any time.`;
   else controlHint.textContent = 'Manual inversion is available at any time.';
 

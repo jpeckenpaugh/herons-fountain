@@ -20,11 +20,15 @@ The pipes serve different roles:
 
 In the normal orientation, water drains from the Basin through P1 into lower Chamber A. This compresses the connected air and pushes water from upper Chamber B through P3 to the nozzle. At startup, all trapped air is at atmospheric pressure.
 
+The initial water levels are 50% in the Basin (**4.0 L**), 20% in Chamber A (**0.8 L**), and 90% in Chamber B (**3.6 L**). The system therefore starts with **8.4 L** of water and atmospheric pressure throughout the trapped air.
+
 The fountain eventually settles when its water levels and shared air pressure reach hydrostatic equilibrium, or when the active jet pickup becomes exposed.
 
 **Invert** is available at any time. Inverting pauses the physics for one second while Chamber A and P1 move up 10 cm and Chamber B and P3 move down 10 cm. P2 behaves as a flexible tube and remains attached to both chambers. Once the movement finishes, P1 becomes the jet pipe, P3 becomes the drain pipe, and flow resumes in the opposite direction. The next inversion returns the system to its original orientation.
 
-The endpoint labels follow those roles. In the normal orientation, P1's Basin endpoint is the intake and P3's Basin endpoint is the nozzle. After inversion, P3 becomes the intake and P1 becomes the nozzle.
+The endpoint labels follow those roles. In the normal orientation, P1's Basin endpoint is the intake and P3's Basin endpoint is the nozzle. After inversion, P3 becomes the intake and P1 becomes the nozzle. P1 and P3 have matching 4 cm bends at their Basin endpoints, both facing inward. The active nozzle therefore launches its stream horizontally toward the center of the Basin rather than vertically upward.
+
+The pipe interiors are represented visually as well as structurally. P1 and P3 have blue water cores with faint moving highlights that show the calculated flow direction and relative strength. P2 has a dark air core with a slower, fainter airflow indicator. All pipe-flow animation pauses during inversion.
 
 ## Bench-scale apparatus
 
@@ -35,13 +39,17 @@ The modeled apparatus represents a demonstration-sized fountain rather than a bu
 - Chamber A capacity: **4 L**
 - Chamber B capacity: **4 L**
 - P1 and P3 total length: approximately **0.29 m** each, including identical **0.04 m** inward-facing top bends
+- P1 and P3 vertical run: **0.25 m** each
 - P1 and P3 internal diameter: approximately **7.14 mm**
+- P1 and P3 bottom clearance inside their attached chambers: **0.02 m**
+- Basin intake elevation in either orientation: **0.42 m**
+- Nozzle elevation in either orientation: **0.52 m**
 - P2 internal diameter: **9 mm**
 - P2 air dead volume: **50 mL**
 - Inversion travel: **0.10 m** per chamber
 - Inversion duration: **1 second**
 
-P1 and P3 have the same length, diameter, flow area, and lumped discharge coefficient.
+P1 and P3 have the same length, bend geometry, diameter, flow area, and lumped discharge coefficient. Each pipe remains attached to its chamber and moves with it during inversion.
 
 ## Physics model
 
@@ -71,13 +79,15 @@ where:
 
 The displayed P2 pressure is **gauge pressure** relative to the atmosphere. For example, `+2.4 kPa` corresponds to approximately `103.7 kPa` absolute pressure when standard atmospheric pressure is `101.325 kPa`.
 
+P2 is assumed to equalize chamber pressure without a meaningful pressure drop, so the model does not calculate a separate local airflow rate through it. Its animated airflow uses the average liquid displacement in P1 and P3 as a restrained visual proxy. The P1 and P3 highlights use their respective calculated liquid flow rates but move in real display time so their direction remains readable at accelerated simulation speeds.
+
 ## Controls
 
 - Select **Invert** at any time to exchange the chamber elevations and reverse the flow. It is disabled only during the transition.
 - **Auto Invert** is on by default. Its default trigger inverts after jet speed falls to **0.25 m/s** for **0.5 simulated seconds**, after the jet has first risen above that threshold. This occurs earlier than the nearly stopped condition and preserves a strong following cycle.
 - **Trigger** can use jet speed, true jet flow rate, lower receiving-chamber fill, source-chamber fill, elapsed cycle time, or the original settled condition. **Threshold** and **Dwell** configure the selected trigger. Every mode retains the fully settled state as a fallback so the apparatus cannot remain stalled indefinitely.
 - **Speed** cycles through **1×**, **2×**, **4×**, **8×**, and **16×** simulation speed. It accelerates physics and jet animation; the inversion transition always lasts one real second.
-- Select **Reset** to restore the initial water levels, atmospheric air pressure, and simulation time.
+- Select **Reset** to restore the normal orientation, initial water levels, atmospheric air pressure, and simulation time.
 - Hover over or focus a button to see a short explanation. Select **About** for an overview of the apparatus, inversion behavior, and model boundaries.
 
 Reset preserves the selected speed, Auto Invert setting, trigger, threshold, and dwell time.
@@ -102,6 +112,7 @@ This is a lumped 2D approximation. It intentionally does not model:
 - Individual air bubbles or leaks
 - Temperature changes during rapid compression
 - Separate pressure dynamics along P2
+- A locally solved P2 airflow rate; its animation is a visual proxy
 - Surface tension, viscosity-dependent pipe friction, or nozzle breakup
 - Water volume and travel delay inside the pipes
 - Detailed valve, sliding-joint, or flexible-tube mechanics during inversion
@@ -112,4 +123,4 @@ The discharge coefficient approximates several real losses at once. The particle
 
 - `index.html` defines the page, controls, responsive layout, and labels.
 - `physics.js` contains the physical configuration and simulation state updates.
-- `render.js` draws the apparatus, animates the jet, and updates the live readouts.
+- `render.js` draws the apparatus, animates liquid flow, airflow, and the horizontal jet, and updates the live readouts.
