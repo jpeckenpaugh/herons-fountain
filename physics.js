@@ -72,7 +72,7 @@ const PHYS = {
     intakeOffset: 0.01,
   },
   P2: {
-    diameter: 0.005,
+    diameter: 0.009,
     start: { x: 0.55, y: 0.25 },
     end: { x: 0.45, y: 0.35 },
   },

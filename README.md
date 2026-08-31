@@ -36,6 +36,7 @@ The modeled apparatus represents a demonstration-sized fountain rather than a bu
 - Chamber B capacity: **4 L**
 - P1 and P3 length: **0.25 m** each
 - P1 and P3 internal diameter: approximately **7.14 mm**
+- P2 internal diameter: **9 mm**
 - P2 air dead volume: **50 mL**
 - Inversion travel: **0.10 m** per chamber
 - Inversion duration: **1 second**

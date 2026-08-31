@@ -32,7 +32,9 @@ const MAX_PHYSICS_STEPS_PER_FRAME = 128;
 let speedIndex = 0;
 let autoInvertEnabled = true;
 let physicsAccumulator = 0;
+let currentInletFlowMlPerSecond = 0;
 let currentJetFlowMlPerSecond = 0;
+const pipePulsePhase = { p1: 0, p2: 0, p3: 0 };
 
 const TRIGGER_CONFIG = {
   'jet-speed': { label: 'Jet speed', defaultValue: 0.25, min: 0.05, max: 1, step: 0.05, unit: 'm/s' },
@@ -248,10 +250,7 @@ function drawWater(xL, xR, yB, surface, fill) {
   ctx.fillRect(SX(xL), SY(surface), SW(xR - xL), SY(yB) - SY(surface));
 }
 
-function drawPipe(points, diameter = 0.005) {
-  ctx.strokeStyle = '#8fa3b8';
-  ctx.lineWidth = Math.max(3, SW(diameter));
-  ctx.lineCap = 'round';
+function strokePipePath(points) {
   ctx.beginPath();
   points.forEach(([x, y], i) => (
     i ? ctx.lineTo(SX(x), SY(y)) : ctx.moveTo(SX(x), SY(y))
@@ -259,17 +258,125 @@ function drawPipe(points, diameter = 0.005) {
   ctx.stroke();
 }
 
+function drawPipe(points, diameter = 0.005, contentsColor = null) {
+  const outerWidth = Math.max(3, SW(diameter));
+  ctx.strokeStyle = '#8fa3b8';
+  ctx.lineWidth = outerWidth;
+  ctx.lineCap = 'round';
+  strokePipePath(points);
+
+  if (contentsColor) {
+    ctx.strokeStyle = contentsColor;
+    ctx.lineWidth = Math.max(1.25, outerWidth * 0.42);
+    strokePipePath(points);
+  }
+}
+
+function pipePulseSpeed(flowMlPerSecond) {
+  if (flowMlPerSecond < 0.1) return 0;
+  const strength = Math.min(1, flowMlPerSecond / 30);
+  return 10 + 25 * Math.sqrt(strength);
+}
+
+function drawPipePulse(points, diameter, flowMlPerSecond, phase, direction) {
+  if (sim.transitioning || flowMlPerSecond < 0.1) return;
+  const outerWidth = Math.max(3, SW(diameter));
+  const strength = Math.min(1, flowMlPerSecond / 30);
+
+  ctx.save();
+  ctx.strokeStyle = `rgba(175, 225, 255, ${0.2 + 0.4 * strength})`;
+  ctx.lineWidth = Math.max(1, outerWidth * 0.2);
+  ctx.lineCap = 'round';
+  ctx.setLineDash([6, 14]);
+  ctx.lineDashOffset = direction === 'forward' ? -phase : phase;
+  strokePipePath(points);
+  ctx.restore();
+}
+
+function drawAirPulse(points, diameter, flowMlPerSecond, phase, direction) {
+  if (sim.transitioning || flowMlPerSecond < 0.1) return;
+  const outerWidth = Math.max(3, SW(diameter));
+  const strength = Math.min(1, flowMlPerSecond / 30);
+
+  ctx.save();
+  ctx.strokeStyle = `rgba(205, 220, 232, ${0.08 + 0.18 * strength})`;
+  ctx.lineWidth = Math.max(1, outerWidth * 0.15);
+  ctx.lineCap = 'round';
+  ctx.setLineDash([7, 17]);
+  ctx.lineDashOffset = direction === 'forward' ? -phase : phase;
+  strokePipePath(points);
+  ctx.restore();
+}
+
+function liquidPipeFlowState() {
+  if (sim.isNormal()) {
+    return {
+      p1: { flow: currentInletFlowMlPerSecond, direction: 'forward' },
+      p3: { flow: currentJetFlowMlPerSecond, direction: 'reverse' },
+    };
+  }
+  return {
+    p1: { flow: currentJetFlowMlPerSecond, direction: 'reverse' },
+    p3: { flow: currentInletFlowMlPerSecond, direction: 'forward' },
+  };
+}
+
+function airPipeFlowState() {
+  return {
+    // The lumped-pressure model has no local P2 flow solver, so average liquid
+    // displacement provides a restrained visual proxy for air redistribution.
+    flow: (currentInletFlowMlPerSecond + currentJetFlowMlPerSecond) / 2,
+    // P2 is drawn from Chamber A to Chamber B.
+    direction: sim.isNormal() ? 'forward' : 'reverse',
+  };
+}
+
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const { A, B, C } = PHYS;
   const geometry = visualGeometry();
+  const pipeFlow = liquidPipeFlowState();
+  const airFlow = airPipeFlowState();
   updateOverlay(geometry);
 
   // P2 is a flexible tube whose endpoints remain attached to both chambers.
-  drawPipe([[geometry.p1.x, geometry.p1.topY], [geometry.p1.x, geometry.p1.bottomY]], geometry.p1.diameter);
-  drawPipe([[geometry.p2.start.x, geometry.p2.start.y], [geometry.p2.end.x, geometry.p2.end.y]], geometry.p2.diameter);
-  drawPipe([[geometry.p3.x, geometry.p3.topY], [geometry.p3.x, geometry.p3.bottomY]], geometry.p3.diameter);
+  drawPipe(
+    [[geometry.p1.x, geometry.p1.topY], [geometry.p1.x, geometry.p1.bottomY]],
+    geometry.p1.diameter,
+    'rgba(70, 160, 255, 0.95)',
+  );
+  drawPipe(
+    [[geometry.p2.start.x, geometry.p2.start.y], [geometry.p2.end.x, geometry.p2.end.y]],
+    geometry.p2.diameter,
+    '#1a2230',
+  );
+  drawPipe(
+    [[geometry.p3.x, geometry.p3.topY], [geometry.p3.x, geometry.p3.bottomY]],
+    geometry.p3.diameter,
+    'rgba(70, 160, 255, 0.95)',
+  );
+  drawPipePulse(
+    [[geometry.p1.x, geometry.p1.topY], [geometry.p1.x, geometry.p1.bottomY]],
+    geometry.p1.diameter,
+    pipeFlow.p1.flow,
+    pipePulsePhase.p1,
+    pipeFlow.p1.direction,
+  );
+  drawAirPulse(
+    [[geometry.p2.start.x, geometry.p2.start.y], [geometry.p2.end.x, geometry.p2.end.y]],
+    geometry.p2.diameter,
+    airFlow.flow,
+    pipePulsePhase.p2,
+    airFlow.direction,
+  );
+  drawPipePulse(
+    [[geometry.p3.x, geometry.p3.topY], [geometry.p3.x, geometry.p3.bottomY]],
+    geometry.p3.diameter,
+    pipeFlow.p3.flow,
+    pipePulsePhase.p3,
+    pipeFlow.p3.direction,
+  );
 
   drawWater(A.xL, A.xR, A.floor, sim.surfaceA(), 'rgba(70,160,255,0.55)');
   drawWater(
@@ -292,11 +399,6 @@ function draw() {
 
   if (!sim.transitioning) {
     const jet = activeJetGeometry(geometry);
-    ctx.fillStyle = '#dfe7ee';
-    ctx.beginPath();
-    ctx.arc(SX(jet.x), SY(jet.intakeY), 4, 0, Math.PI * 2);
-    ctx.fill();
-
     ctx.fillStyle = 'rgba(120,200,255,0.9)';
     const dropRadius = Math.max(1.5, SW(jet.diameter) * 0.22);
     for (const drop of drops) {
@@ -304,11 +406,6 @@ function draw() {
       ctx.arc(SX(drop.x), SY(drop.y), dropRadius, 0, Math.PI * 2);
       ctx.fill();
     }
-
-    ctx.fillStyle = '#dfe7ee';
-    ctx.beginPath();
-    ctx.arc(SX(jet.x), SY(jet.y), 4, 0, Math.PI * 2);
-    ctx.fill();
   }
 
   const gaugePressure = (sim.gasPressure() - PHYS.P_atm) / 1000;
@@ -335,6 +432,7 @@ function draw() {
 invertButton.addEventListener('click', () => {
   if (!sim.beginInversion()) return;
   physicsAccumulator = 0;
+  currentInletFlowMlPerSecond = 0;
   currentJetFlowMlPerSecond = 0;
   autoTrigger.reset();
   drops.length = 0;
@@ -370,6 +468,7 @@ aboutDialog.addEventListener('click', (event) => {
 
 document.getElementById('reset').addEventListener('click', () => {
   physicsAccumulator = 0;
+  currentInletFlowMlPerSecond = 0;
   currentJetFlowMlPerSecond = 0;
   drops.length = 0;
   dropCarry = 0;
@@ -391,6 +490,7 @@ function frame(now) {
     let steps = 0;
     while (physicsAccumulator >= PHYSICS_STEP && steps < MAX_PHYSICS_STEPS_PER_FRAME) {
       const flow = sim.step(PHYSICS_STEP);
+      currentInletFlowMlPerSecond = flow.inQ * 1e6;
       currentJetFlowMlPerSecond = flow.jetQ * 1e6;
       if (flow.jetQ > 0 && sim.surfaceA() < PHYS.nozzle.y) {
         const geometry = visualGeometry();
@@ -412,6 +512,7 @@ function frame(now) {
       if (triggerReached && autoInvertEnabled) {
         sim.beginInversion();
         physicsAccumulator = 0;
+        currentInletFlowMlPerSecond = 0;
         currentJetFlowMlPerSecond = 0;
         autoTrigger.reset();
         drops.length = 0;
@@ -419,6 +520,13 @@ function frame(now) {
         break;
       }
     }
+  }
+  if (!sim.transitioning) {
+    const pipeFlow = liquidPipeFlowState();
+    const airFlow = airPipeFlowState();
+    pipePulsePhase.p1 = (pipePulsePhase.p1 + realDt * pipePulseSpeed(pipeFlow.p1.flow)) % 1000;
+    pipePulsePhase.p2 = (pipePulsePhase.p2 + realDt * pipePulseSpeed(airFlow.flow) * 0.55) % 1000;
+    pipePulsePhase.p3 = (pipePulsePhase.p3 + realDt * pipePulseSpeed(pipeFlow.p3.flow)) % 1000;
   }
   draw();
   requestAnimationFrame(frame);
