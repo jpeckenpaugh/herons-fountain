@@ -203,7 +203,7 @@ class HeronSim {
   }
 
   beginInversion() {
-    if (!this.ended || this.transitioning) return false;
+    if (this.transitioning) return false;
     this.transitioning = true;
     this.transitionElapsed = 0;
     this.transitionTarget = this.isNormal() ? 'inverted' : 'normal';

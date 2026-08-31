@@ -12,8 +12,17 @@ const p3Label = document.querySelector('.label-p3');
 const nozzleLabel = document.querySelector('.label-nozzle');
 const intakeLabel = document.querySelector('.label-intake');
 const invertButton = document.getElementById('invert');
+const autoInvertButton = document.getElementById('auto-invert');
+const speedButton = document.getElementById('speed');
 const controlHint = document.getElementById('control-hint');
 const sim = new HeronSim();
+
+const SPEED_MULTIPLIERS = [1, 2, 4, 8, 16];
+const PHYSICS_STEP = 1 / 120;
+const MAX_PHYSICS_STEPS_PER_FRAME = 128;
+let speedIndex = 0;
+let autoInvertEnabled = true;
+let physicsAccumulator = 0;
 
 // ---- World -> screen transform (y world points up) ----
 const WX = [PHYS.world.xMin, PHYS.world.xMax];
@@ -104,6 +113,15 @@ function activeJetGeometry(geometry) {
   };
 }
 
+function positionEndpointLabel(label, pipe) {
+  const isLeftPipe = pipe.x < 0.5;
+  label.style.left = `${XP(pipe.x) + (isLeftPipe ? 1 : -1)}%`;
+  label.style.top = `${YP(pipe.topY)}%`;
+  label.style.transform = isLeftPipe
+    ? 'translateY(-50%)'
+    : 'translate(-100%, -50%)';
+}
+
 function updateOverlay(geometry) {
   sceneWrap.style.setProperty('--chamber-a-top', `${YP(geometry.chamberA.yT) - 5.1}%`);
   sceneWrap.style.setProperty('--chamber-b-top', `${YP(geometry.chamberB.yT) - 5.1}%`);
@@ -114,24 +132,21 @@ function updateOverlay(geometry) {
   nozzleLabel.classList.toggle('is-hidden', featuresHidden);
   intakeLabel.classList.toggle('is-hidden', featuresHidden);
   if (!featuresHidden) {
-    const jet = activeJetGeometry(geometry);
-    nozzleLabel.style.left = `${XP(jet.x) + (sim.isNormal() ? -1 : 1)}%`;
-    nozzleLabel.style.top = `${YP(jet.y)}%`;
-    nozzleLabel.style.transform = sim.isNormal()
-      ? 'translate(-100%, -50%)'
-      : 'translateY(-50%)';
-    intakeLabel.style.left = `${XP(jet.x) + 1}%`;
-    intakeLabel.style.top = `${YP(jet.intakeY)}%`;
+    const jetPipe = sim.isNormal() ? geometry.p3 : geometry.p1;
+    const drainPipe = sim.isNormal() ? geometry.p1 : geometry.p3;
+    positionEndpointLabel(nozzleLabel, jetPipe);
+    positionEndpointLabel(intakeLabel, drainPipe);
   }
 
   p1Label.textContent = sim.isNormal() ? 'P1 ↓' : 'P1 ↑';
   p3Label.textContent = sim.isNormal() ? 'P3 ↑' : 'P3 ↓';
 
   invertButton.textContent = sim.transitioning ? 'Inverting…' : 'Invert';
-  invertButton.disabled = sim.transitioning || !sim.ended;
+  invertButton.disabled = sim.transitioning;
   if (sim.transitioning) controlHint.textContent = 'Physics paused while the chambers exchange positions.';
-  else if (sim.ended) controlHint.textContent = 'Equilibrium reached. Ready to invert.';
-  else controlHint.textContent = 'Invert becomes available at equilibrium.';
+  else if (sim.ended && !autoInvertEnabled) controlHint.textContent = 'System settled. Invert when ready.';
+  else if (autoInvertEnabled) controlHint.textContent = 'Auto Invert is on. Manual inversion is available at any time.';
+  else controlHint.textContent = 'Manual inversion is available at any time.';
 
   chamberALabel.setAttribute('aria-label', `Chamber A, ${sim.isNormal() ? 'lower receiver' : 'upper jet source'}`);
   chamberBLabel.setAttribute('aria-label', `Chamber B, ${sim.isNormal() ? 'upper jet source' : 'lower receiver'}`);
@@ -236,7 +251,7 @@ function draw() {
   const status = sim.transitioning
     ? 'Inverting — physics paused.   '
     : sim.ended
-      ? 'Equilibrium reached — ready to invert.   '
+      ? 'System settled.   '
       : '';
   const displayedJetVelocity = sim.transitioning ? 0 : sim.fountainVelocity();
   statsEl.textContent =
@@ -251,11 +266,24 @@ function draw() {
 // ---- Controls ----
 invertButton.addEventListener('click', () => {
   if (!sim.beginInversion()) return;
+  physicsAccumulator = 0;
   drops.length = 0;
   dropCarry = 0;
 });
 
+autoInvertButton.addEventListener('click', () => {
+  autoInvertEnabled = !autoInvertEnabled;
+  autoInvertButton.setAttribute('aria-pressed', String(autoInvertEnabled));
+  autoInvertButton.textContent = `Auto Invert: ${autoInvertEnabled ? 'On' : 'Off'}`;
+});
+
+speedButton.addEventListener('click', () => {
+  speedIndex = (speedIndex + 1) % SPEED_MULTIPLIERS.length;
+  speedButton.textContent = `Speed: ${SPEED_MULTIPLIERS[speedIndex]}×`;
+});
+
 document.getElementById('reset').addEventListener('click', () => {
+  physicsAccumulator = 0;
   drops.length = 0;
   dropCarry = 0;
   sim.reset();
@@ -264,27 +292,38 @@ document.getElementById('reset').addEventListener('click', () => {
 // ---- Main loop ----
 let last = performance.now();
 function frame(now) {
-  const dt = Math.min((now - last) / 1000, 0.05);
+  const realDt = Math.min((now - last) / 1000, 0.05);
   last = now;
-  let jetVolume = 0;
-  let jetV = 0;
 
   if (sim.transitioning) {
-    sim.advanceInversion(dt);
+    physicsAccumulator = 0;
+    sim.advanceInversion(realDt);
   } else {
-    for (let i = 0; i < 4; i++) {
-      const flow = sim.step(dt / 4);
-      jetVolume += flow.jetQ * dt / 4;
-      if (flow.jetV > 0) jetV = flow.jetV;
+    physicsAccumulator += realDt * SPEED_MULTIPLIERS[speedIndex];
+    let steps = 0;
+    while (physicsAccumulator >= PHYSICS_STEP && steps < MAX_PHYSICS_STEPS_PER_FRAME) {
+      const flow = sim.step(PHYSICS_STEP);
+      if (flow.jetQ > 0 && sim.surfaceA() < PHYS.nozzle.y) {
+        const geometry = visualGeometry();
+        emitDrops(
+          flow.jetQ * PHYSICS_STEP,
+          flow.jetV,
+          activeJetGeometry(geometry),
+        );
+      }
+      updateDrops(PHYSICS_STEP);
+      physicsAccumulator -= PHYSICS_STEP;
+      steps++;
+
+      if (sim.ended && autoInvertEnabled) {
+        sim.beginInversion();
+        physicsAccumulator = 0;
+        drops.length = 0;
+        dropCarry = 0;
+        break;
+      }
     }
   }
-
-  if (!sim.transitioning && jetVolume > 0 && sim.surfaceA() < PHYS.nozzle.y) {
-    const geometry = visualGeometry();
-    const jet = activeJetGeometry(geometry);
-    emitDrops(jetVolume, jetV, jet);
-  }
-  if (!sim.transitioning) updateDrops(dt);
   draw();
   requestAnimationFrame(frame);
 }

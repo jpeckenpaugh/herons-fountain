@@ -80,6 +80,10 @@
     cursor: pointer;
   }
   button:active { background: #2458c4; }
+  button.secondary { background: #344f70; }
+  button.secondary:active { background: #293f5a; }
+  button[aria-pressed="true"] { background: #287a57; }
+  button[aria-pressed="true"]:active { background: #206246; }
   button:disabled {
     background: #344153;
     color: #8493a4;
@@ -109,9 +113,11 @@
     <div class="scene-label feature-label label-intake">intake</div>
   </div>
   <div class="controls">
-    <button id="invert" disabled>Invert</button>
+    <button id="invert">Invert</button>
+    <button id="auto-invert" class="secondary" aria-pressed="true">Auto Invert: On</button>
+    <button id="speed" class="secondary">Speed: 1×</button>
     <button id="reset">Reset</button>
-    <span class="hint" id="control-hint">Invert becomes available at equilibrium.</span>
+    <span class="hint" id="control-hint">Auto Invert is on. Manual inversion is available at any time.</span>
   </div>
   <div class="stats" id="stats"></div>
 

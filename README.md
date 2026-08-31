@@ -20,9 +20,11 @@ The pipes serve different roles:
 
 In the normal orientation, water drains from the Basin through P1 into lower Chamber A. This compresses the connected air and pushes water from upper Chamber B through P3 to the nozzle. At startup, all trapped air is at atmospheric pressure.
 
-The fountain eventually stops when its water levels and shared air pressure reach hydrostatic equilibrium, or when the active jet intake becomes exposed.
+The fountain eventually settles when its water levels and shared air pressure reach hydrostatic equilibrium, or when the active jet pickup becomes exposed.
 
-At equilibrium, **Invert** becomes available. Inverting pauses the physics for one second while Chamber A and P1 move up 10 cm and Chamber B and P3 move down 10 cm. P2 behaves as a flexible tube and remains attached to both chambers. Once the movement finishes, P1 becomes the jet pipe, P3 becomes the drain pipe, and flow resumes in the opposite direction. The next inversion returns the system to its original orientation.
+**Invert** is available at any time. Inverting pauses the physics for one second while Chamber A and P1 move up 10 cm and Chamber B and P3 move down 10 cm. P2 behaves as a flexible tube and remains attached to both chambers. Once the movement finishes, P1 becomes the jet pipe, P3 becomes the drain pipe, and flow resumes in the opposite direction. The next inversion returns the system to its original orientation.
+
+The endpoint labels follow those roles. In the normal orientation, P1's Basin endpoint is the intake and P3's Basin endpoint is the nozzle. After inversion, P3 becomes the intake and P1 becomes the nozzle.
 
 ## Bench-scale apparatus
 
@@ -70,9 +72,12 @@ The displayed P2 pressure is **gauge pressure** relative to the atmosphere. For 
 
 ## Controls
 
-- Select **Invert** after equilibrium to exchange the chamber elevations and reverse the flow.
-- **Invert** remains disabled while water is flowing and during the transition.
+- Select **Invert** at any time to exchange the chamber elevations and reverse the flow. It is disabled only during the transition.
+- **Auto Invert** is on by default and automatically inverts the apparatus whenever the system settles. It can be switched off for manual experiments.
+- **Speed** cycles through **1×**, **2×**, **4×**, **8×**, and **16×** simulation speed. It accelerates physics and jet animation; the inversion transition always lasts one real second.
 - Select **Reset** to restore the initial water levels, atmospheric air pressure, and simulation time.
+
+Reset preserves the selected speed and Auto Invert setting.
 
 The status line shows elapsed simulation time, jet exit velocity, vessel volumes, and fill percentages.
 
