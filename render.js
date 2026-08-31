@@ -102,7 +102,7 @@ function draw() {
   // Basin open top
   ctx.strokeStyle = '#7d93ab';
   ctx.lineWidth = 3;
-  ctx.strokeRect(SX(A.xL), SY(A.floor + A.maxDepth), SW(A.xR - A.xL), SW(A.maxDepth));
+  ctx.strokeRect(SX(A.xL), SY(A.floor + A.maxDepth), SW(A.xR - A.xL), SY(A.floor) - SY(A.floor + A.maxDepth));
 
   // Fountain jet
   ctx.fillStyle = 'rgba(120,200,255,0.9)';

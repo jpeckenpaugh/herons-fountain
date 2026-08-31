@@ -20,16 +20,16 @@ const PHYS = {
   P_atm: 101325,      // Pa
 
   // A: top basin (open tray). Max water depth = maxDepth.
-  A: { xL: 2.0, xR: 8.0, floor: 4.6, width: 6.0, maxDepth: 0.8 },
+  A: { xL: 1.0, xR: 9.0, floor: 5.0, width: 8.0, maxDepth: 1.0 },
 
   // C: middle water/jet reservoir (box)
-  C: { xL: 2.0, xR: 4.0, yB: 2.5, yT: 4.5, width: 2.0 },
+  C: { xL: 1.5, xR: 4.5, yB: 2.5, yT: 4.5, width: 3.0 },
 
   // B: bottom air/compression chamber (box)
-  B: { xL: 6.0, xR: 8.0, yB: 0.5, yT: 2.5, width: 2.0 },
+  B: { xL: 5.5, xR: 8.5, yB: 0.5, yT: 2.5, width: 3.0 },
 
   // Fountain nozzle: exit position in the basin (x, y).
-  nozzle: { x: 4.2, y: 4.95 },
+  nozzle: { x: 4.2, y: 5.5 },
 
   // Orifice "areas" (tuned conductance, not literal m^2)
   P1: 0.03,            // A -> B (water)
