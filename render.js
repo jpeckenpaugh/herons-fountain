@@ -86,9 +86,9 @@ function draw() {
   const { A, B, C, nozzle } = PHYS;
 
   // Pipes (behind water). P1: A->B, P2: B->C (air), P3: C->A (nozzle jet).
-  drawPipe([[6.0, A.floor], [6.0, B.yT]], 'P1');
+  drawPipe([[6.0, 4.1], [6.0, 1.6]], 'P1');
   drawPipe([[B.xR - 0.35, B.yT], [B.xR - 0.35, C.yT], [C.xR - 0.2, C.yT]], 'P2');
-  drawPipe([[4.0, C.yB], [4.0, nozzle.y]], 'P3');
+  drawPipe([[4.0, 5.1], [4.0, 2.6]], 'P3');
 
   // Chambers + live water levels
   drawChamber(A, 'A · top basin');
