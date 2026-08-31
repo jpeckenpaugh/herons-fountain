@@ -9,8 +9,8 @@ const gasPressureEl = document.getElementById('gas-pressure');
 const sim = new HeronSim();
 
 // ---- World -> screen transform (y world points up) ----
-const WX = [0.0, 10.0];
-const WY = [0.0, 6.0];
+const WX = [PHYS.world.xMin, PHYS.world.xMax];
+const WY = [PHYS.world.yMin, PHYS.world.yMax];
 const SX = (x) => ((x - WX[0]) / (WX[1] - WX[0])) * canvas.width;
 const SY = (y) => canvas.height - ((y - WY[0]) / (WY[1] - WY[0])) * canvas.height;
 const SW = (dx) => dx / (WX[1] - WX[0]) * canvas.width;
@@ -18,7 +18,7 @@ const SW = (dx) => dx / (WX[1] - WX[0]) * canvas.width;
 // ---- Fountain particles ----
 const drops = [];
 let dropCarry = 0;
-const DROPS_PER_CUBIC_METER = 8000;
+const DROPS_PER_CUBIC_METER = 8000 / Math.pow(PHYS.lengthScale, 2.5);
 
 function emitDrops(jetVolume, jetV) {
   const { nozzle, P3 } = PHYS;
@@ -80,7 +80,7 @@ function drawWater(xL, xR, yB, surface, fill) {
   ctx.fillRect(SX(xL), SY(surface), SW(xR - xL), SY(yB) - SY(surface));
 }
 
-function drawPipe(pts, diameter = 0.05) {
+function drawPipe(pts, diameter = 0.005) {
   ctx.strokeStyle = '#8fa3b8';
   ctx.lineWidth = Math.max(3, SW(diameter));
   ctx.lineCap = 'round';
@@ -92,11 +92,11 @@ function drawPipe(pts, diameter = 0.05) {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const { A, B, C, nozzle, P1, P3 } = PHYS;
+  const { A, B, C, nozzle, P1, P2, P3 } = PHYS;
 
   // Pipes (behind water). P1: A->B, P2: B->C (air), P3: C->A (nozzle jet).
   drawPipe([[P1.x, P1.topY], [P1.x, P1.bottomY]], P1.diameter);
-  drawPipe([[5.5, 2.5], [4.5, 3.5]]);
+  drawPipe([[P2.start.x, P2.start.y], [P2.end.x, P2.end.y]], P2.diameter);
   drawPipe([[P3.x, P3.topY], [P3.x, P3.bottomY]], P3.diameter);
 
   // Live water levels, then vessel outlines. Labels are HTML overlays.
@@ -132,13 +132,14 @@ function draw() {
   const volA = sim.V_A;
   const volB = sim.V_B;
   const volC = sim.V_C;
+  const liters = (volume) => volume * 1000;
   statsEl.textContent =
     (sim.ended ? 'Equilibrium reached — cycle ended. Reset to re-run.   ' : '') +
-    `time ${sim.t.toFixed(1)}s · jet ${sim.fountainVelocity().toFixed(2)} m/s · ` +
-    `basin ${volA.toFixed(1)} m³ (${(100 * sim.depthA() / A.maxDepth).toFixed(0)}%) · ` +
-    `Chamber A ${volB.toFixed(1)} m³ (${(100 * sim.depthB() / (B.yT - B.yB)).toFixed(0)}%) · ` +
-    `Chamber B ${volC.toFixed(1)} m³ (${(100 * sim.depthC() / (C.yT - C.yB)).toFixed(0)}%)` +
-    (sim.spilledVolume > 0 ? ` · spilled ${sim.spilledVolume.toFixed(2)} m³` : '');
+    `Time ${sim.t.toFixed(1)}s · Jet ${sim.fountainVelocity().toFixed(2)} m/s · ` +
+    `Basin ${liters(volA).toFixed(1)} L (${(100 * sim.depthA() / A.maxDepth).toFixed(0)}%) · ` +
+    `Chamber A ${liters(volB).toFixed(1)} L (${(100 * sim.depthB() / (B.yT - B.yB)).toFixed(0)}%) · ` +
+    `Chamber B ${liters(volC).toFixed(1)} L (${(100 * sim.depthC() / (C.yT - C.yB)).toFixed(0)}%)` +
+    (sim.spilledVolume > 0 ? ` · spilled ${liters(sim.spilledVolume).toFixed(1)} L` : '');
 }
 
 // ---- Controls ----

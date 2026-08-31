@@ -9,33 +9,42 @@
 // isothermal gas volume. Water is incompressible, and pipe flows use a simple
 // orifice approximation Q = Cd * area * sqrt(2 * deltaP / rho).
 
-// P1 and P3 are intentionally identical. Preserve the original fountain
-// nozzle area (0.004 m^2) and derive the shared diameter from it.
-const LIQUID_PIPE_AREA = 0.004;
+// A 1:10 linear scale turns the original installation-sized geometry into a
+// bench model. Areas scale by 1:100 and volumes by 1:1000.
+const LENGTH_SCALE = 0.1;
+const AREA_SCALE = LENGTH_SCALE ** 2;
+const VOLUME_SCALE = LENGTH_SCALE ** 3;
+const FLOW_SCALE = LENGTH_SCALE ** 2.5;
+
+// P1 and P3 are intentionally identical. Their 7.14 mm internal diameter is
+// derived from the scaled 0.00004 m^2 flow area.
+const LIQUID_PIPE_AREA = 0.004 * AREA_SCALE;
 const LIQUID_PIPE_DIAMETER = Math.sqrt(4 * LIQUID_PIPE_AREA / Math.PI);
-const LIQUID_PIPE_LENGTH = 2.5;
+const LIQUID_PIPE_LENGTH = 2.5 * LENGTH_SCALE;
 const LIQUID_PIPE_DISCHARGE_COEFFICIENT = 0.75;
 
 const PHYS = {
   g: 9.81,
   rho: 1000,          // kg/m^3
   P_atm: 101325,      // Pa
+  lengthScale: LENGTH_SCALE,
+  world: { xMin: 0, xMax: 1.0, yMin: 0, yMax: 0.6 },
 
   // crossSectionArea is the physical area perpendicular to the side view.
   A: {
-    xL: 2.5, xR: 7.5, floor: 4.0, maxDepth: 1.6,
-    crossSectionArea: 5.0,
+    xL: 0.25, xR: 0.75, floor: 0.4, maxDepth: 0.16,
+    crossSectionArea: 0.05,
   },
   C: {
-    xL: 0.5, xR: 4.5, yB: 2.5, yT: 3.5,
-    crossSectionArea: 4.0,
+    xL: 0.05, xR: 0.45, yB: 0.25, yT: 0.35,
+    crossSectionArea: 0.04,
   },
   B: {
-    xL: 5.5, xR: 9.5, yB: 1.5, yT: 2.5,
-    crossSectionArea: 4.0,
+    xL: 0.55, xR: 0.95, yB: 0.15, yT: 0.25,
+    crossSectionArea: 0.04,
   },
 
-  nozzle: { x: 4.0, y: 5.1 },
+  nozzle: { x: 0.4, y: 0.51 },
 
   // Cd is a lumped loss term in this approximation. Matching Cd, diameter,
   // and length gives P1 and P3 the same hydraulic resistance. P2 is the air
@@ -45,27 +54,32 @@ const PHYS = {
     diameter: LIQUID_PIPE_DIAMETER,
     length: LIQUID_PIPE_LENGTH,
     dischargeCoefficient: LIQUID_PIPE_DISCHARGE_COEFFICIENT,
-    x: 6.0,
-    topY: 4.1,
-    bottomY: 1.6,
+    x: 0.6,
+    topY: 0.41,
+    bottomY: 0.16,
   },
   P3: {
     area: LIQUID_PIPE_AREA,
     diameter: LIQUID_PIPE_DIAMETER,
     length: LIQUID_PIPE_LENGTH,
     dischargeCoefficient: LIQUID_PIPE_DISCHARGE_COEFFICIENT,
-    x: 4.0,
-    topY: 5.1,
-    bottomY: 2.6,
-    intakeY: 2.6,
+    x: 0.4,
+    topY: 0.51,
+    bottomY: 0.26,
+    intakeY: 0.26,
+  },
+  P2: {
+    diameter: 0.005,
+    start: { x: 0.55, y: 0.25 },
+    end: { x: 0.45, y: 0.35 },
   },
 
-  airTubeVolume: 0.05, // gas dead volume in P2, m^3
+  airTubeVolume: 0.05 * VOLUME_SCALE, // 50 mL gas dead volume in P2
   gasExponent: 1.0,    // 1.0 = isothermal; 1.4 would be adiabatic air
-  pourRate: 0.06,      // m^3/s of externally poured water
+  pourRate: 0.00015,   // 150 mL/s of externally poured water
 
-  stopFlowRate: 1e-5,  // m^3/s
-  stopPressure: 10,    // Pa
+  stopFlowRate: 1e-5 * FLOW_SCALE, // m^3/s
+  stopPressure: 10 * LENGTH_SCALE, // Pa
   stopDelay: 0.5,      // seconds at equilibrium before declaring the end
 };
 

@@ -49,9 +49,9 @@
   .chamber-label { color: #eef5fb; }
   .pipe-label { color: #c9d6e2; }
   .feature-label { color: #a9bdd0; font-weight: 550; }
-  .label-a { left: 25%; top: 1.8%; }
-  .label-c { left: 5%; top: 36.5%; }
-  .label-b { left: 55%; top: 53.2%; }
+  .label-a { left: 50%; top: 1.8%; transform: translateX(-50%); }
+  .label-c { left: 25%; top: 36.5%; transform: translateX(-50%); }
+  .label-b { left: 75%; top: 53.2%; transform: translateX(-50%); }
   .label-p1 { left: 61%; top: 48%; transform: translateY(-50%); }
   .label-p2 { left: 50%; top: 45%; transform: translate(-50%, -100%); }
   .label-p3 { left: 39%; top: 33%; transform: translate(-100%, -50%); }
@@ -59,7 +59,8 @@
   .label-intake { left: 41%; top: 57.5%; transform: translateY(-50%); }
   .pressure-value { color: #76baff; font-variant-numeric: tabular-nums; }
   @media (max-width: 600px) {
-    .label-p1 { left: 72%; }
+    .label-p1 { left: 76%; }
+    .label-p2 { left: 55%; top: 50%; }
     .label-p3 { left: 30%; top: 27%; }
     .label-nozzle { left: 52%; top: 17%; }
   }
@@ -88,7 +89,7 @@
   <h1>Heron's Fountain — 2D simulation</h1>
   <div class="scene-wrap">
     <canvas id="scene" width="1000" height="600" role="img" aria-label="Side-view simulation of a Heron's fountain with an open basin, Chamber A compression chamber, Chamber B jet reservoir, connecting pipes, and animated water jet."></canvas>
-    <div class="scene-label chamber-label label-a">Open basin</div>
+    <div class="scene-label chamber-label label-a">Basin</div>
     <div class="scene-label chamber-label label-c">Chamber B</div>
     <div class="scene-label chamber-label label-b">Chamber A</div>
     <div class="scene-label pipe-label label-p1">P1 ↓</div>
