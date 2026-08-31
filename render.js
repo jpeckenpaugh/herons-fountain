@@ -87,7 +87,7 @@ function draw() {
 
   // Pipes (behind water). P1: A->B, P2: B->C (air), P3: C->A (nozzle jet).
   drawPipe([[6.0, 4.1], [6.0, 1.6]], 'P1');
-  drawPipe([[B.xR - 0.35, B.yT], [B.xR - 0.35, C.yT], [C.xR - 0.2, C.yT]], 'P2');
+  drawPipe([[5.5, 2.5], [4.5, 3.5]], 'P2');
   drawPipe([[4.0, 5.1], [4.0, 2.6]], 'P3');
 
   // Chambers + live water levels
