@@ -287,3 +287,62 @@ class HeronSim {
     return { inQ, jetQ, jetV, overflow };
   }
 }
+
+// Tracks configurable automatic-inversion conditions independently from the
+// hydraulic state. Flow thresholds arm only after the jet has exceeded them,
+// preventing an immediate inversion while the fountain is initially priming.
+class AutoInvertTrigger {
+  constructor(sim) {
+    this.sim = sim;
+    this.reset();
+  }
+
+  reset() {
+    this.elapsed = 0;
+    this.conditionTime = 0;
+    this.peakJetVelocity = 0;
+    this.peakJetFlowMlPerSecond = 0;
+  }
+
+  receiverFillFraction() {
+    return this.sim.receiverVolume() / chamberCapacity(this.sim.receiverConfig());
+  }
+
+  sourceFillFraction() {
+    return this.sim.sourceVolume() / chamberCapacity(this.sim.sourceConfig());
+  }
+
+  update(flow, dt, settings) {
+    const { mode, threshold, dwell } = settings;
+    const jetFlowMlPerSecond = flow.jetQ * 1e6;
+    this.elapsed += dt;
+    this.peakJetVelocity = Math.max(this.peakJetVelocity, flow.jetV);
+    this.peakJetFlowMlPerSecond = Math.max(
+      this.peakJetFlowMlPerSecond,
+      jetFlowMlPerSecond,
+    );
+
+    let condition = false;
+    if (mode === 'jet-speed') {
+      const armingMargin = Math.max(0.05, threshold * 0.1);
+      condition = this.peakJetVelocity >= threshold + armingMargin &&
+        flow.jetV <= threshold;
+    } else if (mode === 'jet-flow') {
+      const armingMargin = Math.max(1, threshold * 0.1);
+      condition = this.peakJetFlowMlPerSecond >= threshold + armingMargin &&
+        jetFlowMlPerSecond <= threshold;
+    } else if (mode === 'receiver-fill') {
+      condition = this.receiverFillFraction() >= threshold / 100;
+    } else if (mode === 'source-fill') {
+      condition = this.sourceFillFraction() <= threshold / 100;
+    } else if (mode === 'cycle-time') {
+      condition = this.elapsed >= threshold;
+    } else if (mode === 'settled') {
+      return this.sim.ended;
+    }
+
+    this.conditionTime = condition ? this.conditionTime + dt : 0;
+    return this.sim.ended ||
+      (condition && (dwell <= 0 || this.conditionTime >= dwell));
+  }
+}

@@ -70,6 +70,22 @@
     .label-p3 { left: 30%; top: calc(var(--p3-top) - 6%); }
   }
   .controls { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14px; }
+  .control-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #a9bdd0;
+    font-size: 13px;
+  }
+  select, input {
+    border: 1px solid #50657b;
+    border-radius: 6px;
+    background: #1a2230;
+    color: #dfe7ee;
+    padding: 6px 8px;
+    font: inherit;
+  }
+  input[type="number"] { width: 62px; }
   button {
     padding: 8px 16px;
     border: none;
@@ -89,6 +105,58 @@
     color: #8493a4;
     cursor: not-allowed;
   }
+  button[data-tooltip] { position: relative; }
+  button[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    z-index: 20;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    width: max-content;
+    max-width: min(240px, calc(100vw - 32px));
+    padding: 7px 9px;
+    border: 1px solid #50657b;
+    border-radius: 6px;
+    background: #0c1118;
+    color: #dfe7ee;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.35;
+    text-align: left;
+    white-space: normal;
+    box-shadow: 0 5px 16px rgba(0, 0, 0, .45);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 4px);
+    transition: opacity .12s ease, transform .12s ease;
+  }
+  button[data-tooltip]:hover::after,
+  button[data-tooltip]:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  dialog {
+    width: min(560px, calc(100vw - 32px));
+    padding: 0;
+    border: 1px solid #50657b;
+    border-radius: 12px;
+    background: #18212d;
+    color: #dfe7ee;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, .65);
+  }
+  dialog::backdrop { background: rgba(5, 8, 12, .74); }
+  .about-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px;
+    border-bottom: 1px solid #35475a;
+  }
+  .about-header h2 { margin: 0; font-size: 18px; }
+  .about-content { padding: 18px 20px 20px; color: #b9c8d6; line-height: 1.55; }
+  .about-content p { margin: 0 0 12px; }
+  .about-content p:last-child { margin-bottom: 0; }
   .hint { font-size: 13px; color: #8aa0b5; }
   .stats {
     max-width: calc(100vw - 24px);
@@ -113,13 +181,44 @@
     <div class="scene-label feature-label label-intake">intake</div>
   </div>
   <div class="controls">
-    <button id="invert">Invert</button>
-    <button id="auto-invert" class="secondary" aria-pressed="true">Auto Invert: On</button>
-    <button id="speed" class="secondary">Speed: 1×</button>
-    <button id="reset">Reset</button>
+    <button id="invert" aria-label="Invert" data-tooltip="Pause physics for one second, exchange the chamber heights, and reverse the flow.">Invert</button>
+    <button id="auto-invert" class="secondary" aria-label="Auto Invert" aria-pressed="true" data-tooltip="Turn off automatic inversion. Manual inversion remains available.">Auto Invert: On</button>
+    <label class="control-field">Trigger
+      <select id="auto-trigger">
+        <option value="jet-speed" selected>Jet speed</option>
+        <option value="jet-flow">Jet flow</option>
+        <option value="receiver-fill">Lower chamber</option>
+        <option value="source-fill">Source chamber</option>
+        <option value="cycle-time">Cycle time</option>
+        <option value="settled">Settled</option>
+      </select>
+    </label>
+    <label class="control-field" id="threshold-control">Threshold
+      <input id="trigger-threshold" type="number" min="0.05" max="1" step="0.05" value="0.25">
+      <span id="trigger-unit">m/s</span>
+    </label>
+    <label class="control-field">Dwell
+      <input id="trigger-dwell" type="number" min="0" max="5" step="0.1" value="0.5">
+      <span>s</span>
+    </label>
+    <button id="speed" class="secondary" aria-label="Simulation speed" data-tooltip="Cycle simulation speed through 1×, 2×, 4×, 8×, and 16×. Inversion still takes one real second.">Speed: 1×</button>
+    <button id="reset" aria-label="Reset" data-tooltip="Restore the initial water levels, pressure, orientation, and simulation time. Control settings are preserved.">Reset</button>
+    <button id="about" class="secondary" aria-label="About" data-tooltip="Open an overview of the fountain and simulation model.">About</button>
     <span class="hint" id="control-hint">Auto Invert is on. Manual inversion is available at any time.</span>
   </div>
   <div class="stats" id="stats"></div>
+
+  <dialog id="about-dialog" aria-labelledby="about-title">
+    <div class="about-header">
+      <h2 id="about-title">About this simulation</h2>
+      <button id="close-about" class="secondary" aria-label="Close About" data-tooltip="Close this overview.">Close</button>
+    </div>
+    <div class="about-content">
+      <p>This is a bench-scale, two-dimensional approximation of a Heron's fountain. Water falling from the Basin through the active intake enters the lower sealed chamber and compresses the air shared through P2. That pressure drives water from the upper chamber through the active nozzle and back into the Basin.</p>
+      <p>Invert pauses physics for one real second while the chambers exchange elevations, then reverses the roles of P1 and P3. Auto Invert can use jet speed, flow rate, chamber fill, cycle time, or the settled state as its trigger.</p>
+      <p>The model conserves water volume and approximates pipe flow and shared-air compression. It intentionally simplifies turbulence, temperature changes, pipe transit time, and detailed flexible-tube mechanics.</p>
+    </div>
+  </dialog>
 
   <script src="physics.js"></script>
   <script src="render.js"></script>

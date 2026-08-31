@@ -13,9 +13,18 @@ const nozzleLabel = document.querySelector('.label-nozzle');
 const intakeLabel = document.querySelector('.label-intake');
 const invertButton = document.getElementById('invert');
 const autoInvertButton = document.getElementById('auto-invert');
+const autoTriggerSelect = document.getElementById('auto-trigger');
+const thresholdControl = document.getElementById('threshold-control');
+const triggerThresholdInput = document.getElementById('trigger-threshold');
+const triggerUnit = document.getElementById('trigger-unit');
+const triggerDwellInput = document.getElementById('trigger-dwell');
 const speedButton = document.getElementById('speed');
+const aboutButton = document.getElementById('about');
+const aboutDialog = document.getElementById('about-dialog');
+const closeAboutButton = document.getElementById('close-about');
 const controlHint = document.getElementById('control-hint');
 const sim = new HeronSim();
+const autoTrigger = new AutoInvertTrigger(sim);
 
 const SPEED_MULTIPLIERS = [1, 2, 4, 8, 16];
 const PHYSICS_STEP = 1 / 120;
@@ -23,6 +32,64 @@ const MAX_PHYSICS_STEPS_PER_FRAME = 128;
 let speedIndex = 0;
 let autoInvertEnabled = true;
 let physicsAccumulator = 0;
+let currentJetFlowMlPerSecond = 0;
+
+const TRIGGER_CONFIG = {
+  'jet-speed': { label: 'Jet speed', defaultValue: 0.25, min: 0.05, max: 1, step: 0.05, unit: 'm/s' },
+  'jet-flow': { label: 'Jet flow', defaultValue: 7.5, min: 1, max: 30, step: 0.5, unit: 'mL/s' },
+  'receiver-fill': { label: 'Lower chamber', defaultValue: 75, min: 20, max: 90, step: 5, unit: '%' },
+  'source-fill': { label: 'Source chamber', defaultValue: 25, min: 10, max: 80, step: 5, unit: '%' },
+  'cycle-time': { label: 'Cycle time', defaultValue: 120, min: 10, max: 300, step: 10, unit: 's' },
+  settled: { label: 'Settled', defaultValue: 0, unit: '' },
+};
+
+function triggerSettings() {
+  const config = TRIGGER_CONFIG[autoTriggerSelect.value];
+  const enteredThreshold = Number(triggerThresholdInput.value);
+  const enteredDwell = Number(triggerDwellInput.value);
+  return {
+    mode: autoTriggerSelect.value,
+    threshold: Number.isFinite(enteredThreshold)
+      ? Math.min(config.max ?? enteredThreshold, Math.max(config.min ?? enteredThreshold, enteredThreshold))
+      : config.defaultValue,
+    dwell: Number.isFinite(enteredDwell)
+      ? Math.min(5, Math.max(0, enteredDwell))
+      : 0.5,
+  };
+}
+
+function acceptTriggerInputs() {
+  const settings = triggerSettings();
+  triggerThresholdInput.value = settings.threshold;
+  triggerDwellInput.value = settings.dwell;
+  autoTrigger.reset();
+}
+
+function configureTriggerInputs(resetValue = true) {
+  const config = TRIGGER_CONFIG[autoTriggerSelect.value];
+  const hasThreshold = autoTriggerSelect.value !== 'settled';
+  thresholdControl.hidden = !hasThreshold;
+  triggerDwellInput.disabled = !hasThreshold;
+  if (hasThreshold) {
+    triggerThresholdInput.min = config.min;
+    triggerThresholdInput.max = config.max;
+    triggerThresholdInput.step = config.step;
+    if (resetValue) triggerThresholdInput.value = config.defaultValue;
+    triggerUnit.textContent = config.unit;
+  }
+  autoTrigger.reset();
+}
+
+function triggerDescription() {
+  const settings = triggerSettings();
+  if (settings.mode === 'settled') return 'when the system settles';
+  const config = TRIGGER_CONFIG[settings.mode];
+  const relation = settings.mode === 'source-fill' || settings.mode.startsWith('jet-')
+    ? '≤'
+    : '≥';
+  const dwellText = settings.dwell > 0 ? ` for ${settings.dwell} s` : '';
+  return `${config.label} ${relation} ${settings.threshold} ${config.unit}${dwellText}`;
+}
 
 // ---- World -> screen transform (y world points up) ----
 const WX = [PHYS.world.xMin, PHYS.world.xMax];
@@ -145,7 +212,7 @@ function updateOverlay(geometry) {
   invertButton.disabled = sim.transitioning;
   if (sim.transitioning) controlHint.textContent = 'Physics paused while the chambers exchange positions.';
   else if (sim.ended && !autoInvertEnabled) controlHint.textContent = 'System settled. Invert when ready.';
-  else if (autoInvertEnabled) controlHint.textContent = 'Auto Invert is on. Manual inversion is available at any time.';
+  else if (autoInvertEnabled) controlHint.textContent = `Auto Invert ${triggerDescription()}. Manual inversion is available at any time.`;
   else controlHint.textContent = 'Manual inversion is available at any time.';
 
   chamberALabel.setAttribute('aria-label', `Chamber A, ${sim.isNormal() ? 'lower receiver' : 'upper jet source'}`);
@@ -254,9 +321,10 @@ function draw() {
       ? 'System settled.   '
       : '';
   const displayedJetVelocity = sim.transitioning ? 0 : sim.fountainVelocity();
+  const displayedJetFlow = sim.transitioning ? 0 : currentJetFlowMlPerSecond;
   statsEl.textContent =
     status +
-    `Time ${sim.t.toFixed(1)}s · Jet ${displayedJetVelocity.toFixed(2)} m/s · ` +
+    `Time ${sim.t.toFixed(1)}s · Jet ${displayedJetVelocity.toFixed(2)} m/s (${displayedJetFlow.toFixed(1)} mL/s) · ` +
     `Basin ${liters(sim.V_A).toFixed(1)} L (${(100 * sim.depthA() / A.maxDepth).toFixed(0)}%) · ` +
     `Chamber A ${liters(sim.V_B).toFixed(1)} L (${(100 * sim.depthB() / (B.yT - B.yB)).toFixed(0)}%) · ` +
     `Chamber B ${liters(sim.V_C).toFixed(1)} L (${(100 * sim.depthC() / (C.yT - C.yB)).toFixed(0)}%)` +
@@ -267,14 +335,23 @@ function draw() {
 invertButton.addEventListener('click', () => {
   if (!sim.beginInversion()) return;
   physicsAccumulator = 0;
+  currentJetFlowMlPerSecond = 0;
+  autoTrigger.reset();
   drops.length = 0;
   dropCarry = 0;
 });
+
+autoTriggerSelect.addEventListener('change', () => configureTriggerInputs(true));
+triggerThresholdInput.addEventListener('change', acceptTriggerInputs);
+triggerDwellInput.addEventListener('change', acceptTriggerInputs);
 
 autoInvertButton.addEventListener('click', () => {
   autoInvertEnabled = !autoInvertEnabled;
   autoInvertButton.setAttribute('aria-pressed', String(autoInvertEnabled));
   autoInvertButton.textContent = `Auto Invert: ${autoInvertEnabled ? 'On' : 'Off'}`;
+  autoInvertButton.dataset.tooltip = autoInvertEnabled
+    ? 'Turn off automatic inversion. Manual inversion remains available.'
+    : 'Turn on automatic inversion using the configured trigger.';
 });
 
 speedButton.addEventListener('click', () => {
@@ -282,11 +359,22 @@ speedButton.addEventListener('click', () => {
   speedButton.textContent = `Speed: ${SPEED_MULTIPLIERS[speedIndex]}×`;
 });
 
+aboutButton.addEventListener('click', () => aboutDialog.showModal());
+closeAboutButton.addEventListener('click', () => aboutDialog.close());
+aboutDialog.addEventListener('click', (event) => {
+  const bounds = aboutDialog.getBoundingClientRect();
+  const outside = event.clientX < bounds.left || event.clientX > bounds.right ||
+    event.clientY < bounds.top || event.clientY > bounds.bottom;
+  if (outside) aboutDialog.close();
+});
+
 document.getElementById('reset').addEventListener('click', () => {
   physicsAccumulator = 0;
+  currentJetFlowMlPerSecond = 0;
   drops.length = 0;
   dropCarry = 0;
   sim.reset();
+  autoTrigger.reset();
 });
 
 // ---- Main loop ----
@@ -297,12 +385,13 @@ function frame(now) {
 
   if (sim.transitioning) {
     physicsAccumulator = 0;
-    sim.advanceInversion(realDt);
+    if (sim.advanceInversion(realDt)) autoTrigger.reset();
   } else {
     physicsAccumulator += realDt * SPEED_MULTIPLIERS[speedIndex];
     let steps = 0;
     while (physicsAccumulator >= PHYSICS_STEP && steps < MAX_PHYSICS_STEPS_PER_FRAME) {
       const flow = sim.step(PHYSICS_STEP);
+      currentJetFlowMlPerSecond = flow.jetQ * 1e6;
       if (flow.jetQ > 0 && sim.surfaceA() < PHYS.nozzle.y) {
         const geometry = visualGeometry();
         emitDrops(
@@ -315,9 +404,16 @@ function frame(now) {
       physicsAccumulator -= PHYSICS_STEP;
       steps++;
 
-      if (sim.ended && autoInvertEnabled) {
+      const triggerReached = autoTrigger.update(
+        flow,
+        PHYSICS_STEP,
+        triggerSettings(),
+      );
+      if (triggerReached && autoInvertEnabled) {
         sim.beginInversion();
         physicsAccumulator = 0;
+        currentJetFlowMlPerSecond = 0;
+        autoTrigger.reset();
         drops.length = 0;
         dropCarry = 0;
         break;
@@ -327,4 +423,5 @@ function frame(now) {
   draw();
   requestAnimationFrame(frame);
 }
+configureTriggerInputs(false);
 requestAnimationFrame(frame);

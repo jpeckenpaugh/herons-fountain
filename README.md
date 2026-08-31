@@ -73,13 +73,15 @@ The displayed P2 pressure is **gauge pressure** relative to the atmosphere. For 
 ## Controls
 
 - Select **Invert** at any time to exchange the chamber elevations and reverse the flow. It is disabled only during the transition.
-- **Auto Invert** is on by default and automatically inverts the apparatus whenever the system settles. It can be switched off for manual experiments.
+- **Auto Invert** is on by default. Its default trigger inverts after jet speed falls to **0.25 m/s** for **0.5 simulated seconds**, after the jet has first risen above that threshold. This occurs earlier than the nearly stopped condition and preserves a strong following cycle.
+- **Trigger** can use jet speed, true jet flow rate, lower receiving-chamber fill, source-chamber fill, elapsed cycle time, or the original settled condition. **Threshold** and **Dwell** configure the selected trigger. Every mode retains the fully settled state as a fallback so the apparatus cannot remain stalled indefinitely.
 - **Speed** cycles through **1×**, **2×**, **4×**, **8×**, and **16×** simulation speed. It accelerates physics and jet animation; the inversion transition always lasts one real second.
 - Select **Reset** to restore the initial water levels, atmospheric air pressure, and simulation time.
+- Hover over or focus a button to see a short explanation. Select **About** for an overview of the apparatus, inversion behavior, and model boundaries.
 
-Reset preserves the selected speed and Auto Invert setting.
+Reset preserves the selected speed, Auto Invert setting, trigger, threshold, and dwell time.
 
-The status line shows elapsed simulation time, jet exit velocity, vessel volumes, and fill percentages.
+The status line shows elapsed simulation time, jet exit velocity, true jet flow rate, vessel volumes, and fill percentages.
 
 ## Running locally
 
