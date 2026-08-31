@@ -112,13 +112,13 @@ function emitDrops(jetVolume, jetV, nozzle) {
   const n = Math.floor(dropCarry);
   dropCarry -= n;
   for (let i = 0; i < n; i++) {
-    const ang = (-0.05 + Math.random() * 0.10) * (Math.PI / 2);
+    const ang = (-0.04 + Math.random() * 0.08) * (Math.PI / 2);
     const speed = jetV * (0.96 + Math.random() * 0.08);
     drops.push({
-      x: nozzle.x + (Math.random() - 0.5) * nozzle.diameter,
-      y: nozzle.y,
-      vx: Math.sin(ang) * speed,
-      vy: Math.cos(ang) * speed,
+      x: nozzle.x,
+      y: nozzle.y + (Math.random() - 0.5) * nozzle.diameter,
+      vx: nozzle.directionX * Math.cos(ang) * speed,
+      vy: Math.sin(ang) * speed,
       life: 3,
     });
   }
@@ -174,21 +174,40 @@ function visualGeometry() {
 
 function activeJetGeometry(geometry) {
   const pipe = sim.isNormal() ? geometry.p3 : geometry.p1;
+  const endpoint = liquidPipeTopEndpoint(pipe);
   return {
-    x: pipe.x,
+    x: endpoint.x,
     y: pipe.topY,
     intakeY: pipe.bottomY,
     diameter: pipe.diameter,
+    directionX: pipe.x < 0.5 ? 1 : -1,
   };
 }
 
-function positionEndpointLabel(label, pipe) {
-  const isLeftPipe = pipe.x < 0.5;
-  label.style.left = `${XP(pipe.x) + (isLeftPipe ? 1 : -1)}%`;
-  label.style.top = `${YP(pipe.topY)}%`;
-  label.style.transform = isLeftPipe
-    ? 'translateY(-50%)'
-    : 'translate(-100%, -50%)';
+function liquidPipeTopEndpoint(pipe) {
+  const inwardDirection = pipe.x < 0.5 ? 1 : -1;
+  return { x: pipe.x + inwardDirection * pipe.bendLength, y: pipe.topY };
+}
+
+function liquidPipePath(pipe) {
+  const endpoint = liquidPipeTopEndpoint(pipe);
+  return [
+    [endpoint.x, endpoint.y],
+    [pipe.x, pipe.topY],
+    [pipe.x, pipe.bottomY],
+  ];
+}
+
+function positionEndpointLabel(label, pipe, placement) {
+  const endpoint = liquidPipeTopEndpoint(pipe);
+  label.style.left = `${XP(endpoint.x)}%`;
+  if (placement === 'above') {
+    label.style.top = `${YP(endpoint.y) - 1.2}%`;
+    label.style.transform = 'translate(-50%, -100%)';
+  } else {
+    label.style.top = `${YP(endpoint.y) + 1.2}%`;
+    label.style.transform = 'translate(-50%, 0)';
+  }
 }
 
 function updateOverlay(geometry) {
@@ -203,8 +222,8 @@ function updateOverlay(geometry) {
   if (!featuresHidden) {
     const jetPipe = sim.isNormal() ? geometry.p3 : geometry.p1;
     const drainPipe = sim.isNormal() ? geometry.p1 : geometry.p3;
-    positionEndpointLabel(nozzleLabel, jetPipe);
-    positionEndpointLabel(intakeLabel, drainPipe);
+    positionEndpointLabel(nozzleLabel, jetPipe, 'above');
+    positionEndpointLabel(intakeLabel, drainPipe, 'below');
   }
 
   p1Label.textContent = sim.isNormal() ? 'P1 ↓' : 'P1 ↑';
@@ -263,6 +282,7 @@ function drawPipe(points, diameter = 0.005, contentsColor = null) {
   ctx.strokeStyle = '#8fa3b8';
   ctx.lineWidth = outerWidth;
   ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   strokePipePath(points);
 
   if (contentsColor) {
@@ -342,7 +362,7 @@ function draw() {
 
   // P2 is a flexible tube whose endpoints remain attached to both chambers.
   drawPipe(
-    [[geometry.p1.x, geometry.p1.topY], [geometry.p1.x, geometry.p1.bottomY]],
+    liquidPipePath(geometry.p1),
     geometry.p1.diameter,
     'rgba(70, 160, 255, 0.95)',
   );
@@ -352,12 +372,12 @@ function draw() {
     '#1a2230',
   );
   drawPipe(
-    [[geometry.p3.x, geometry.p3.topY], [geometry.p3.x, geometry.p3.bottomY]],
+    liquidPipePath(geometry.p3),
     geometry.p3.diameter,
     'rgba(70, 160, 255, 0.95)',
   );
   drawPipePulse(
-    [[geometry.p1.x, geometry.p1.topY], [geometry.p1.x, geometry.p1.bottomY]],
+    liquidPipePath(geometry.p1),
     geometry.p1.diameter,
     pipeFlow.p1.flow,
     pipePulsePhase.p1,
@@ -371,7 +391,7 @@ function draw() {
     airFlow.direction,
   );
   drawPipePulse(
-    [[geometry.p3.x, geometry.p3.topY], [geometry.p3.x, geometry.p3.bottomY]],
+    liquidPipePath(geometry.p3),
     geometry.p3.diameter,
     pipeFlow.p3.flow,
     pipePulsePhase.p3,

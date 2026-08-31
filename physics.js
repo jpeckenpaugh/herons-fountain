@@ -20,7 +20,8 @@ const FLOW_SCALE = LENGTH_SCALE ** 2.5;
 // derived from the scaled 0.00004 m^2 flow area.
 const LIQUID_PIPE_AREA = 0.004 * AREA_SCALE;
 const LIQUID_PIPE_DIAMETER = Math.sqrt(4 * LIQUID_PIPE_AREA / Math.PI);
-const LIQUID_PIPE_LENGTH = 2.5 * LENGTH_SCALE;
+const LIQUID_PIPE_LENGTH = 2.9 * LENGTH_SCALE;
+const LIQUID_PIPE_TOP_BEND = 0.4 * LENGTH_SCALE;
 const LIQUID_PIPE_DISCHARGE_COEFFICIENT = 0.75;
 
 const PHYS = {
@@ -59,6 +60,7 @@ const PHYS = {
     x: 0.6,
     topY: 0.41,
     bottomY: 0.16,
+    bendLength: LIQUID_PIPE_TOP_BEND,
     intakeOffset: 0.01,
   },
   P3: {
@@ -69,6 +71,7 @@ const PHYS = {
     x: 0.4,
     topY: 0.51,
     bottomY: 0.26,
+    bendLength: LIQUID_PIPE_TOP_BEND,
     intakeOffset: 0.01,
   },
   P2: {
