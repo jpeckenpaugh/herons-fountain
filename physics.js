@@ -20,7 +20,7 @@ const PHYS = {
   P_atm: 101325,      // Pa
 
   // A: top basin (open tray). Max water depth = maxDepth.
-  A: { xL: 3.0, xR: 7.0, floor: 4.0, width: 4.0, maxDepth: 1.5 },
+  A: { xL: 2.5, xR: 7.5, floor: 4.0, width: 5.0, maxDepth: 1.6 },
 
   // C: middle water/jet reservoir (box)
   C: { xL: 0.5, xR: 4.5, yB: 2.5, yT: 3.5, width: 4.0 },
