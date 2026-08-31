@@ -8,19 +8,21 @@ The simulation favors clear, understandable behavior over complete fluid-dynamic
 
 The fountain contains three water regions:
 
-- **Basin** — The open vessel at the top. Water drains from here through P1, and the fountain jet returns water here through P3.
-- **Chamber A** — The lower compression chamber. Incoming water reduces its air space and compresses the connected air.
-- **Chamber B** — The jet reservoir. Shared air pressure pushes its water upward through P3.
+- **Basin** — The fixed open vessel at the top. It supplies the active drain pipe and receives the fountain jet.
+- **Chamber A** — The right sealed chamber, attached to P1.
+- **Chamber B** — The left sealed chamber, attached to P3.
 
 The pipes serve different roles:
 
-- **P1** carries water downward from the Basin to Chamber A.
+- **P1** connects the Basin and Chamber A.
 - **P2** connects the air spaces in Chamber A and Chamber B. The model treats these spaces as one shared air volume with one pressure.
-- **P3** carries water from Chamber B to the nozzle in the Basin.
+- **P3** connects Chamber B and the Basin.
 
-At startup, all trapped air is at atmospheric pressure. Gravity causes water to flow through P1 into Chamber A. This reduces the total connected-air volume and raises its pressure. Once the pressure is high enough to lift water from Chamber B to the nozzle, the jet begins.
+In the normal orientation, water drains from the Basin through P1 into lower Chamber A. This compresses the connected air and pushes water from upper Chamber B through P3 to the nozzle. At startup, all trapped air is at atmospheric pressure.
 
-The fountain eventually stops when its water levels and shared air pressure reach hydrostatic equilibrium, or when the P3 intake becomes exposed.
+The fountain eventually stops when its water levels and shared air pressure reach hydrostatic equilibrium, or when the active jet intake becomes exposed.
+
+At equilibrium, **Invert** becomes available. Inverting pauses the physics for one second while Chamber A and P1 move up 10 cm and Chamber B and P3 move down 10 cm. P2 behaves as a flexible tube and remains attached to both chambers. Once the movement finishes, P1 becomes the jet pipe, P3 becomes the drain pipe, and flow resumes in the opposite direction. The next inversion returns the system to its original orientation.
 
 ## Bench-scale apparatus
 
@@ -33,13 +35,14 @@ The modeled apparatus represents a demonstration-sized fountain rather than a bu
 - P1 and P3 length: **0.25 m** each
 - P1 and P3 internal diameter: approximately **7.14 mm**
 - P2 air dead volume: **50 mL**
-- Manual pour rate: **150 mL/s**
+- Inversion travel: **0.10 m** per chamber
+- Inversion duration: **1 second**
 
 P1 and P3 have the same length, diameter, flow area, and lumped discharge coefficient.
 
 ## Physics model
 
-The simulation tracks water as conserved volumes. Water transferred out of one vessel is added to another, while overflow from the open Basin is explicitly recorded as spilled water.
+The simulation tracks water as conserved volumes. Water transferred out of one vessel is added to another. During inversion, all volumes, pressure, and simulation time remain fixed.
 
 The connected air follows a polytropic pressure-volume relationship:
 
@@ -67,11 +70,11 @@ The displayed P2 pressure is **gauge pressure** relative to the atmosphere. For 
 
 ## Controls
 
-- Hold **Pour water** to add water to the Basin.
-- Hold the **Space bar** as a keyboard alternative.
+- Select **Invert** after equilibrium to exchange the chamber elevations and reverse the flow.
+- **Invert** remains disabled while water is flowing and during the transition.
 - Select **Reset** to restore the initial water levels, atmospheric air pressure, and simulation time.
 
-The status line shows elapsed time, jet exit velocity, vessel volumes, fill percentages, and any spilled water.
+The status line shows elapsed simulation time, jet exit velocity, vessel volumes, and fill percentages.
 
 ## Running locally
 
@@ -93,6 +96,7 @@ This is a lumped 2D approximation. It intentionally does not model:
 - Separate pressure dynamics along P2
 - Surface tension, viscosity-dependent pipe friction, or nozzle breakup
 - Water volume and travel delay inside the pipes
+- Detailed valve, sliding-joint, or flexible-tube mechanics during inversion
 
 The discharge coefficient approximates several real losses at once. The particle jet is a visualization of the calculated flow and velocity rather than a full free-surface fluid simulation.
 

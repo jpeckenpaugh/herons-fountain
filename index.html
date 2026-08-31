@@ -22,6 +22,10 @@
     position: relative;
     width: min(1000px, calc(100vw - 24px));
     aspect-ratio: 5 / 3;
+    --chamber-a-top: 53.2%;
+    --chamber-b-top: 36.5%;
+    --p1-top: 48%;
+    --p3-top: 33%;
   }
   canvas {
     display: block;
@@ -50,19 +54,20 @@
   .pipe-label { color: #c9d6e2; }
   .feature-label { color: #a9bdd0; font-weight: 550; }
   .label-a { left: 50%; top: 1.8%; transform: translateX(-50%); }
-  .label-c { left: 25%; top: 36.5%; transform: translateX(-50%); }
-  .label-b { left: 75%; top: 53.2%; transform: translateX(-50%); }
-  .label-p1 { left: 61%; top: 48%; transform: translateY(-50%); }
+  .label-c { left: 25%; top: var(--chamber-b-top); transform: translateX(-50%); }
+  .label-b { left: 75%; top: var(--chamber-a-top); transform: translateX(-50%); }
+  .label-p1 { left: 61%; top: var(--p1-top); transform: translateY(-50%); }
   .label-p2 { left: 50%; top: 45%; transform: translate(-50%, -100%); }
-  .label-p3 { left: 39%; top: 33%; transform: translate(-100%, -50%); }
+  .label-p3 { left: 39%; top: var(--p3-top); transform: translate(-100%, -50%); }
   .label-nozzle { left: 41%; top: 15%; transform: translateY(-50%); }
   .label-intake { left: 41%; top: 57.5%; transform: translateY(-50%); }
+  .feature-label { transition: opacity .12s linear; }
+  .feature-label.is-hidden { opacity: 0; }
   .pressure-value { color: #76baff; font-variant-numeric: tabular-nums; }
   @media (max-width: 600px) {
     .label-p1 { left: 76%; }
     .label-p2 { left: 55%; top: 50%; }
-    .label-p3 { left: 30%; top: 27%; }
-    .label-nozzle { left: 52%; top: 17%; }
+    .label-p3 { left: 30%; top: calc(var(--p3-top) - 6%); }
   }
   .controls { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14px; }
   button {
@@ -75,6 +80,11 @@
     cursor: pointer;
   }
   button:active { background: #2458c4; }
+  button:disabled {
+    background: #344153;
+    color: #8493a4;
+    cursor: not-allowed;
+  }
   .hint { font-size: 13px; color: #8aa0b5; }
   .stats {
     max-width: calc(100vw - 24px);
@@ -99,9 +109,9 @@
     <div class="scene-label feature-label label-intake">intake</div>
   </div>
   <div class="controls">
-    <button id="pour">Pour water (hold / Space)</button>
+    <button id="invert" disabled>Invert</button>
     <button id="reset">Reset</button>
-    <span class="hint">Hold Space or click &amp; hold to pour.</span>
+    <span class="hint" id="control-hint">Invert becomes available at equilibrium.</span>
   </div>
   <div class="stats" id="stats"></div>
 
