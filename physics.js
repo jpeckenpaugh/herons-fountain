@@ -29,7 +29,7 @@ const PHYS = {
   B: { xL: 5.5, xR: 8.5, yB: 0.5, yT: 2.5, width: 3.0 },
 
   // Fountain nozzle: exit position in the basin (x, y).
-  nozzle: { x: 4.2, y: 5.5 },
+  nozzle: { x: 4.0, y: 5.5 },
 
   // Orifice "areas" (tuned conductance, not literal m^2)
   P1: 0.03,            // A -> B (water)
