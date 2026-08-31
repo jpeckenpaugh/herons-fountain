@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heron's Fountain</title>
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #10151c;
+    color: #dfe7ee;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { font-size: 18px; font-weight: 600; margin: 0; }
+  canvas { background: #1a2230; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+  .controls { display: flex; align-items: center; gap: 14px; }
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #2f6fed;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button:active { background: #2458c4; }
+  .hint { font-size: 13px; color: #8aa0b5; }
+  .stats { font-size: 13px; color: #8aa0b5; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <h1>Heron's Fountain — 2D simulation</h1>
+  <canvas id="scene" width="900" height="640"></canvas>
+  <div class="controls">
+    <button id="pour">Pour water (hold / Space)</button>
+    <button id="reset">Reset</button>
+    <span class="hint">Hold Space or click &amp; hold to pour.</span>
+  </div>
+  <div class="stats" id="stats"></div>
+
+  <script src="physics.js"></script>
+  <script src="render.js"></script>
+</body>
+</html>
