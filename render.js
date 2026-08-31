@@ -16,17 +16,24 @@ const SW = (dx) => dx / (WX[1] - WX[0]) * canvas.width;
 
 // ---- Fountain particles ----
 const drops = [];
-function emitDrops(jetV, dt) {
-  const { nozzle } = PHYS;
-  const n = Math.floor(jetV * 40 * dt);
+let dropCarry = 0;
+const DROPS_PER_CUBIC_METER = 8000;
+
+function emitDrops(jetVolume, jetV) {
+  const { nozzle, P3 } = PHYS;
+  dropCarry += jetVolume * DROPS_PER_CUBIC_METER;
+  const n = Math.floor(dropCarry);
+  dropCarry -= n;
+  const nozzleDiameter = Math.sqrt(4 * P3.area / Math.PI);
   for (let i = 0; i < n; i++) {
-    const ang = (-0.16 + Math.random() * 0.32) * (Math.PI / 2);
-    const speed = jetV * (0.8 + Math.random() * 0.35);
+    const ang = (-0.05 + Math.random() * 0.10) * (Math.PI / 2);
+    const speed = jetV * (0.96 + Math.random() * 0.08);
     drops.push({
-      x: nozzle.x, y: nozzle.y,
+      x: nozzle.x + (Math.random() - 0.5) * nozzleDiameter,
+      y: nozzle.y,
       vx: Math.sin(ang) * speed,
       vy: Math.cos(ang) * speed,
-      life: 0.9 + Math.random() * 0.6,
+      life: 3,
     });
   }
   if (drops.length > 900) drops.splice(0, drops.length - 900);
@@ -34,13 +41,15 @@ function emitDrops(jetV, dt) {
 
 function updateDrops(dt) {
   const { g, A } = PHYS;
+  const waterSurface = sim.surfaceA();
   for (let i = drops.length - 1; i >= 0; i--) {
     const d = drops[i];
     d.vy -= g * dt;
     d.x += d.vx * dt;
     d.y += d.vy * dt;
     d.life -= dt;
-    if (d.life <= 0 || (d.y < A.floor + 0.02 && d.x > A.xL && d.x < A.xR)) {
+    const landed = d.vy < 0 && d.y <= waterSurface && d.x > A.xL && d.x < A.xR;
+    if (d.life <= 0 || landed) {
       drops.splice(i, 1);
     }
   }
@@ -56,6 +65,18 @@ function drawChamber(c, label) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
   ctx.fillText(label, SX(c.xL) + 6, SY(c.yT) + 6);
+}
+
+function drawBasin(a, label) {
+  const top = a.floor + a.maxDepth;
+  ctx.strokeStyle = '#7d93ab';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(SX(a.xL), SY(top), SW(a.xR - a.xL), SY(a.floor) - SY(top));
+  ctx.fillStyle = '#dfe7ee';
+  ctx.font = 'bold 15px -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(label, SX(a.xL) + 6, SY(top) + 6);
 }
 
 function drawWater(xL, xR, yB, surface, fill) {
@@ -83,32 +104,33 @@ function drawPipe(pts, label) {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const { A, B, C, nozzle } = PHYS;
+  const { A, B, C, nozzle, P3 } = PHYS;
 
   // Pipes (behind water). P1: A->B, P2: B->C (air), P3: C->A (nozzle jet).
   drawPipe([[6.0, 4.1], [6.0, 1.6]], 'P1');
   drawPipe([[5.5, 2.5], [4.5, 3.5]], 'P2');
   drawPipe([[4.0, 5.1], [4.0, 2.6]], 'P3');
 
-  // Chambers + live water levels
-  drawChamber(A, 'A · top basin');
-  drawChamber(B, 'B · bottom air chamber');
-  drawChamber(C, 'C · middle water chamber');
+  // Live water levels, then vessel outlines and labels.
+  drawWater(A.xL, A.xR, A.floor, sim.surfaceA(), 'rgba(70,160,255,0.55)');
+  drawWater(C.xL, C.xR, C.yB, sim.surfaceC(), 'rgba(70,160,255,0.55)');
+  drawWater(B.xL, B.xR, B.yB, sim.surfaceB(), 'rgba(70,160,255,0.45)');
+  drawBasin(A, 'A · top basin');
+  drawChamber(B, 'B · compression chamber');
+  drawChamber(C, 'C · jet reservoir');
 
-  drawWater(A.xL, A.xR, A.floor, A.floor + sim.W_A, 'rgba(70,160,255,0.55)');
-  drawWater(C.xL, C.xR, C.yB, C.yB + sim.W_C, 'rgba(70,160,255,0.55)');
-  drawWater(B.xL, B.xR, B.yB, B.yB + sim.W_B, 'rgba(70,160,255,0.45)');
-
-  // Basin open top
-  ctx.strokeStyle = '#7d93ab';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(SX(A.xL), SY(A.floor + A.maxDepth), SW(A.xR - A.xL), SY(A.floor) - SY(A.floor + A.maxDepth));
+  // P3 intake: the fountain de-primes when C falls below this elevation.
+  ctx.fillStyle = '#dfe7ee';
+  ctx.beginPath();
+  ctx.arc(SX(nozzle.x), SY(P3.intakeY), 4, 0, Math.PI * 2);
+  ctx.fill();
 
   // Fountain jet
   ctx.fillStyle = 'rgba(120,200,255,0.9)';
+  const dropRadius = Math.max(1.5, SW(Math.sqrt(4 * P3.area / Math.PI)) * 0.22);
   for (const d of drops) {
     ctx.beginPath();
-    ctx.arc(SX(d.x), SY(d.y), 3.2, 0, Math.PI * 2);
+    ctx.arc(SX(d.x), SY(d.y), dropRadius, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.fillStyle = '#dfe7ee';
@@ -121,25 +143,31 @@ function draw() {
   ctx.textBaseline = 'top';
   ctx.fillStyle = '#8aa0b5';
   ctx.textAlign = 'left';
-  ctx.fillText(`B  ΔP ${((sim.pB() - PHYS.P_atm) / 1000).toFixed(1)} kPa`, SX(B.xL), SY(B.yT) + 14);
-  ctx.fillText(`C  ΔP ${((sim.pC() - PHYS.P_atm) / 1000).toFixed(1)} kPa`, SX(C.xL), SY(C.yT) + 14);
+  const gaugePressure = (sim.gasPressure() - PHYS.P_atm) / 1000;
+  ctx.fillText(`shared air  ΔP ${gaugePressure.toFixed(1)} kPa`, SX(B.xL) + 6, SY(B.yT) + 28);
+  ctx.fillText(`shared air  ΔP ${gaugePressure.toFixed(1)} kPa`, SX(C.xL) + 6, SY(C.yT) + 28);
 
-  const volA = A.width * sim.W_A;
-  const volB = B.width * sim.W_B;
-  const volC = C.width * sim.W_C;
+  const volA = sim.V_A;
+  const volB = sim.V_B;
+  const volC = sim.V_C;
   statsEl.textContent =
-    (sim.exhausted ? 'B full — cycle ended. Reset to re-run.   ' : '') +
+    (sim.ended ? 'Equilibrium reached — cycle ended. Reset to re-run.   ' : '') +
     `time ${sim.t.toFixed(1)}s · jet ${sim.fountainVelocity().toFixed(2)} m/s · ` +
-    `A ${volA.toFixed(1)} m³ (${(100 * sim.W_A / A.maxDepth).toFixed(0)}%) · ` +
-    `B ${volB.toFixed(1)} m³ (${(100 * sim.W_B / (B.yT - B.yB)).toFixed(0)}%) · ` +
-    `C ${volC.toFixed(1)} m³ (${(100 * sim.W_C / (C.yT - C.yB)).toFixed(0)}%)`;
+    `A ${volA.toFixed(1)} m³ (${(100 * sim.depthA() / A.maxDepth).toFixed(0)}%) · ` +
+    `B ${volB.toFixed(1)} m³ (${(100 * sim.depthB() / (B.yT - B.yB)).toFixed(0)}%) · ` +
+    `C ${volC.toFixed(1)} m³ (${(100 * sim.depthC() / (C.yT - C.yB)).toFixed(0)}%)` +
+    (sim.spilledVolume > 0 ? ` · spilled ${sim.spilledVolume.toFixed(2)} m³` : '');
 }
 
 // ---- Controls ----
 document.getElementById('pour').addEventListener('mousedown', () => (sim.pouring = true));
 document.getElementById('pour').addEventListener('mouseup', () => (sim.pouring = false));
 document.getElementById('pour').addEventListener('mouseleave', () => (sim.pouring = false));
-document.getElementById('reset').addEventListener('click', () => { drops.length = 0; sim.reset(); });
+document.getElementById('reset').addEventListener('click', () => {
+  drops.length = 0;
+  dropCarry = 0;
+  sim.reset();
+});
 window.addEventListener('keydown', (e) => { if (e.code === 'Space') { sim.pouring = true; e.preventDefault(); } });
 window.addEventListener('keyup', (e) => { if (e.code === 'Space') sim.pouring = false; });
 
@@ -148,8 +176,15 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
-  for (let i = 0; i < 4; i++) sim.step(dt / 4);   // substeps for stability
-  emitDrops(sim.fountainVelocity(), dt);
+  let jetVolume = 0;
+  let jetV = 0;
+  for (let i = 0; i < 4; i++) {
+    const flow = sim.step(dt / 4);
+    jetVolume += flow.jetQ * dt / 4;
+    if (flow.jetV > 0) jetV = flow.jetV;
+  }
+  // A submerged nozzle transfers water into the basin without an airborne jet.
+  if (sim.surfaceA() < PHYS.nozzle.y) emitDrops(jetVolume, jetV);
   updateDrops(dt);
   draw();
   requestAnimationFrame(frame);

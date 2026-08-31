@@ -18,8 +18,14 @@
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   h1 { font-size: 18px; font-weight: 600; margin: 0; }
-  canvas { background: #1a2230; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
-  .controls { display: flex; align-items: center; gap: 14px; }
+  canvas {
+    width: min(1000px, calc(100vw - 24px));
+    height: auto;
+    background: #1a2230;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.4);
+  }
+  .controls { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14px; }
   button {
     padding: 8px 16px;
     border: none;
@@ -31,7 +37,13 @@
   }
   button:active { background: #2458c4; }
   .hint { font-size: 13px; color: #8aa0b5; }
-  .stats { font-size: 13px; color: #8aa0b5; font-variant-numeric: tabular-nums; }
+  .stats {
+    max-width: calc(100vw - 24px);
+    text-align: center;
+    font-size: 13px;
+    color: #8aa0b5;
+    font-variant-numeric: tabular-nums;
+  }
 </style>
 </head>
 <body>
