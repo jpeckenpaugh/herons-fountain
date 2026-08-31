@@ -67,7 +67,12 @@ function drawBasin(a) {
   const top = a.floor + a.maxDepth;
   ctx.strokeStyle = '#7d93ab';
   ctx.lineWidth = 3;
-  ctx.strokeRect(SX(a.xL), SY(top), SW(a.xR - a.xL), SY(a.floor) - SY(top));
+  ctx.beginPath();
+  ctx.moveTo(SX(a.xL), SY(top));
+  ctx.lineTo(SX(a.xL), SY(a.floor));
+  ctx.lineTo(SX(a.xR), SY(a.floor));
+  ctx.lineTo(SX(a.xR), SY(top));
+  ctx.stroke();
 }
 
 function drawWater(xL, xR, yB, surface, fill) {
@@ -94,7 +99,7 @@ function draw() {
   drawPipe([[5.5, 2.5], [4.5, 3.5]]);
   drawPipe([[P3.x, P3.topY], [P3.x, P3.bottomY]], P3.diameter);
 
-  // Live water levels, then vessel outlines and labels.
+  // Live water levels, then vessel outlines. Labels are HTML overlays.
   drawWater(A.xL, A.xR, A.floor, sim.surfaceA(), 'rgba(70,160,255,0.55)');
   drawWater(C.xL, C.xR, C.yB, sim.surfaceC(), 'rgba(70,160,255,0.55)');
   drawWater(B.xL, B.xR, B.yB, sim.surfaceB(), 'rgba(70,160,255,0.45)');
@@ -130,9 +135,9 @@ function draw() {
   statsEl.textContent =
     (sim.ended ? 'Equilibrium reached — cycle ended. Reset to re-run.   ' : '') +
     `time ${sim.t.toFixed(1)}s · jet ${sim.fountainVelocity().toFixed(2)} m/s · ` +
-    `A ${volA.toFixed(1)} m³ (${(100 * sim.depthA() / A.maxDepth).toFixed(0)}%) · ` +
-    `B ${volB.toFixed(1)} m³ (${(100 * sim.depthB() / (B.yT - B.yB)).toFixed(0)}%) · ` +
-    `C ${volC.toFixed(1)} m³ (${(100 * sim.depthC() / (C.yT - C.yB)).toFixed(0)}%)` +
+    `basin ${volA.toFixed(1)} m³ (${(100 * sim.depthA() / A.maxDepth).toFixed(0)}%) · ` +
+    `Chamber A ${volB.toFixed(1)} m³ (${(100 * sim.depthB() / (B.yT - B.yB)).toFixed(0)}%) · ` +
+    `Chamber B ${volC.toFixed(1)} m³ (${(100 * sim.depthC() / (C.yT - C.yB)).toFixed(0)}%)` +
     (sim.spilledVolume > 0 ? ` · spilled ${sim.spilledVolume.toFixed(2)} m³` : '');
 }
 
