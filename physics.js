@@ -46,7 +46,7 @@ class HeronSim {
 
   reset() {
     const { P_atm, B, C } = PHYS;
-    this.W_A = 0.8 * PHYS.A.maxDepth;   // A 80% — pre-primed, fires on load
+    this.W_A = 0.5 * PHYS.A.maxDepth;   // A 50% — half of A's 2× capacity
     this.W_B = 0.1 * (B.yT - B.yB);     // B 10% — large air reserve to compress
     this.W_C = 0.9 * (C.yT - C.yB);     // C 90% — jet source, small air pocket
 

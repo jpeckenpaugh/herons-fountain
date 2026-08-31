@@ -124,12 +124,15 @@ function draw() {
   ctx.fillText(`B  ΔP ${((sim.pB() - PHYS.P_atm) / 1000).toFixed(1)} kPa`, SX(B.xL), SY(B.yT) + 14);
   ctx.fillText(`C  ΔP ${((sim.pC() - PHYS.P_atm) / 1000).toFixed(1)} kPa`, SX(C.xL), SY(C.yT) + 14);
 
+  const volA = A.width * sim.W_A;
+  const volB = B.width * sim.W_B;
+  const volC = C.width * sim.W_C;
   statsEl.textContent =
     (sim.exhausted ? 'B full — cycle ended. Reset to re-run.   ' : '') +
     `time ${sim.t.toFixed(1)}s · jet ${sim.fountainVelocity().toFixed(2)} m/s · ` +
-    `A ${(100 * sim.W_A / A.maxDepth).toFixed(0)}% · ` +
-    `B ${(100 * sim.W_B / (B.yT - B.yB)).toFixed(0)}% · ` +
-    `C ${(100 * sim.W_C / (C.yT - C.yB)).toFixed(0)}%`;
+    `A ${volA.toFixed(1)} m³ (${(100 * sim.W_A / A.maxDepth).toFixed(0)}%) · ` +
+    `B ${volB.toFixed(1)} m³ (${(100 * sim.W_B / (B.yT - B.yB)).toFixed(0)}%) · ` +
+    `C ${volC.toFixed(1)} m³ (${(100 * sim.W_C / (C.yT - C.yB)).toFixed(0)}%)`;
 }
 
 // ---- Controls ----
